@@ -1,0 +1,781 @@
+[index.html](https://github.com/user-attachments/files/34967505/index.html)
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>葉羽球館｜穿線登記與取拍簽收系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { touch-action: manipulation; background-color: #f0fdf4; color: #064e3b; font-family: system-ui, -apple-system, sans-serif; }
+    #signature-pad { touch-action: none; background: #ffffff; border: 2px dashed #059669; border-radius: 0.5rem; cursor: crosshair; }
+    .locked-field { background-color: #f1f5f9 !important; color: #64748b !important; cursor: not-allowed; }
+  </style>
+</head>
+<body class="min-h-screen pb-20">
+  <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <span class="text-2xl">🏸</span>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">葉羽球館</h1>
+          <p class="text-xs text-emerald-200">穿線登記與現場簽收系統</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="switchTab('register')" id="tab-register" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition">➕ 新增登記</button>
+        <button onclick="switchTab('list')" id="tab-list" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-lg text-sm font-bold transition shadow-sm">📋 待取拍清單</button>
+        <button onclick="switchTab('settings')" id="tab-settings" class="bg-emerald-900 hover:bg-emerald-800 text-emerald-200 px-2.5 py-1.5 rounded-lg text-sm transition">⚙️ 設定</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 mt-4">
+    <!-- 1. 新增登記頁面 -->
+    <section id="section-register" class="space-y-4">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
+        <h2 class="text-lg font-bold text-emerald-900 mb-4 flex items-center gap-2"><span>📝</span> 快速新增穿線登記</h2>
+        <form id="addForm" onsubmit="submitForm(event)" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-emerald-800 mb-1">顧客姓名 *</label>
+              <input type="text" id="customerName" required placeholder="例如：大帥哥/大美女" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none mb-2">
+              <label class="block text-xs font-bold text-emerald-800 mb-1">聯絡資訊 (選填)</label>
+              <input type="text" id="contactInfo" placeholder="例如：電話或 Line " class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-emerald-800 mb-1">收件日期</label>
+              <input type="date" id="receiveDate" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-emerald-800 mb-1">球拍型號與磅數 *</label>
+              <input type="text" id="racketSpec" required placeholder="例如：Yonex Arcsaber 11" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none mb-2">
+              <div class="flex gap-1.5 flex-wrap">
+                <button type="button" onclick="setTension(' / 23p')" class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200 hover:bg-emerald-100">+ 23p</button>
+                <button type="button" onclick="setTension(' / 24p')" class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200 hover:bg-emerald-100">+ 24p</button>
+                <button type="button" onclick="setTension(' / 25p')" class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200 hover:bg-emerald-100">+ 25p</button>
+                <button type="button" onclick="setTension(' / 26p')" class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200 hover:bg-emerald-100">+ 26p</button>
+                <button type="button" onclick="setTension(' / 27p')" class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200 hover:bg-emerald-100">+ 27p</button>
+                <button type="button" onclick="setTension(' / 28p')" class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded border border-emerald-200 hover:bg-emerald-100">+ 28p</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-emerald-800 mb-1">線材與費用 *</label>
+              <select id="stringType" onchange="updatePrice()" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none mb-2 bg-white">
+                <option value="BG65" data-price="250">BG65 </option>
+                <option value="BG65Ti" data-price="260">BG65Ti </option>
+                <option value="BG80" data-price="280">BG80 </option>
+                <option value="BG80P" data-price="290">BG80P </option>
+                <option value="BG66UM" data-price="300">BG66UM </option>
+                <option value="VBS-66N" data-price="300">VBS-66N </option>
+                <option value="VBS-63" data-price="300">VBS-63 </option>
+                <option value="自備線" data-price="150">自備線 </option>
+                <option value="其他" data-price="250">其他 / 自行輸入型號</option>
+              </select>
+              <input type="text" id="customString" placeholder="若選其他，請在此輸入線材型號" class="w-full px-3 py-2 border rounded-xl text-xs mb-2 hidden">
+              <input type="text" id="price" required value="$250" placeholder="費用（例如：$250）" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none">
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-emerald-800 mb-1">收拍人員</label>
+              <select id="receiver" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+                <option value="">請選擇收拍人員</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-emerald-800 mb-1">穿線師</label>
+              <select id="stringer" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+                <option value="">請選擇穿線師</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-emerald-800 mb-1">備註</label>
+            <input type="text" id="note" placeholder="例如：急件、穿完通知等" class="w-full px-3 py-2 border rounded-xl outline-none">
+          </div>
+          <button type="submit" id="submitBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-3 px-4 rounded-xl shadow transition text-lg">確認送出並同步雲端試算表</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 2. 待取拍清單頁面 -->
+    <section id="section-list" class="space-y-4 hidden">
+      <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-emerald-100">
+        <div>
+          <h2 class="font-bold text-emerald-900 text-lg">📋 穿線與取拍管理</h2>
+          <p class="text-xs text-slate-500">可進行顧客現場簽收，或更新穿線師與備註</p>
+        </div>
+        <button onclick="loadDataFromCloud(true)" class="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-200 transition">🔄 重新整理</button>
+      </div>
+      <div id="recordsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </section>
+
+    <!-- 3. 設定與人員管理頁面 -->
+    <section id="section-settings" class="space-y-4 hidden">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 space-y-4">
+        <h2 class="text-lg font-bold text-emerald-900">🔗 Google 試算表 Apps Script 連動設定</h2>
+        <div>
+          <label class="block text-sm font-bold text-emerald-800 mb-1">Apps Script 網頁應用程式網址 (/exec)</label>
+          <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border rounded-xl text-xs font-mono outline-none mb-2">
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="saveScriptUrl()" class="bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-800 transition">儲存並測試連線</button>
+            <button onclick="exportCSV()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-300 transition">📥 匯出備份 CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 人員選單自訂管理區塊 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 space-y-4">
+        <h2 class="text-lg font-bold text-emerald-900">👥 下拉選單人員管理</h2>
+        
+        <div class="border-b pb-3">
+          <label class="block text-sm font-bold text-emerald-800 mb-1">收拍人員名單</label>
+          <div class="flex gap-2 mb-2">
+            <input type="text" id="newReceiverInput" placeholder="輸入新收拍人員名字" class="flex-1 px-3 py-2 border rounded-xl text-sm outline-none">
+            <button onclick="addStaff('receiver')" class="bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-800 transition">新增</button>
+          </div>
+          <div id="receiverTags" class="flex gap-2 flex-wrap"></div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-bold text-emerald-800 mb-1">穿線師名單</label>
+          <div class="flex gap-2 mb-2">
+            <input type="text" id="newStringerInput" placeholder="輸入新穿線師名字" class="flex-1 px-3 py-2 border rounded-xl text-sm outline-none">
+            <button onclick="addStaff('stringer')" class="bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-800 transition">新增</button>
+          </div>
+          <div id="stringerTags" class="flex gap-2 flex-wrap"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 簽名互動彈窗 Modal -->
+  <div id="signModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="font-bold text-lg text-emerald-900">✍️ 顧客現場手寫簽收</h3>
+          <p id="signCustomerName" class="text-xs text-slate-500 font-medium"></p>
+        </div>
+        <button onclick="closeSignModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">✕</button>
+      </div>
+      <div>
+        <p class="text-xs text-emerald-800 mb-1 font-medium">請在下方框內手寫簽名：</p>
+        <canvas id="signature-pad" width="380" height="200" class="w-full"></canvas>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="clearSignature()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-xl text-sm transition">清除重寫</button>
+        <button id="confirmSignBtn" onclick="confirmSignature()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2 rounded-xl text-sm transition shadow">確認簽收並上傳</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改顧客資料彈窗 Modal -->
+  <div id="editModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-3 shadow-2xl my-8">
+      <div class="flex justify-between items-center border-b pb-2">
+        <div>
+          <h3 class="font-bold text-lg text-emerald-900">✏️ 修改穿線資料</h3>
+          <p id="editPermStatus" class="text-[11px] text-amber-700 font-medium">🔒 目前僅開放修改「穿線師」與「備註」</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="unlockBtn" onclick="unlockAllEditFields()" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-900 px-2.5 py-1 rounded-lg font-bold transition">🔓 主管解鎖</button>
+          <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">✕</button>
+        </div>
+      </div>
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="block font-bold text-emerald-800 mb-1">顧客姓名 *</label>
+          <input type="text" id="editCustomerName" disabled class="w-full px-3 py-2 border rounded-xl outline-none mb-2 locked-field">
+          <label class="block font-bold text-emerald-800 mb-1 text-xs">聯絡資訊 (選填)</label>
+          <input type="text" id="editContactInfo" disabled class="w-full px-3 py-2 border rounded-xl outline-none text-xs locked-field">
+        </div>
+        <div>
+          <label class="block font-bold text-emerald-800 mb-1">球拍型號與磅數 *</label>
+          <input type="text" id="editRacketSpec" disabled class="w-full px-3 py-2 border rounded-xl outline-none locked-field">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-emerald-800 mb-1">線材</label>
+            <input type="text" id="editStringType" disabled class="w-full px-3 py-2 border rounded-xl outline-none locked-field">
+          </div>
+          <div>
+            <label class="block font-bold text-emerald-800 mb-1">費用</label>
+            <input type="text" id="editPrice" disabled class="w-full px-3 py-2 border rounded-xl outline-none locked-field">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-emerald-800 mb-1">收拍人員</label>
+            <select id="editReceiver" disabled class="w-full px-3 py-2 border rounded-xl outline-none locked-field"></select>
+          </div>
+          <div>
+            <label class="block font-bold text-emerald-800 mb-1">穿線師 <span class="text-xs text-emerald-600 font-normal">(可修改)</span></label>
+            <select id="editStringer" class="w-full px-3 py-2 border-2 border-emerald-500 rounded-xl outline-none bg-white"></select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-emerald-800 mb-1">收件日期</label>
+          <input type="text" id="editReceiveDate" disabled class="w-full px-3 py-2 border rounded-xl outline-none locked-field">
+        </div>
+        <div>
+          <label class="block font-bold text-emerald-800 mb-1">備註 <span class="text-xs text-emerald-600 font-normal">(可修改)</span></label>
+          <input type="text" id="editNote" class="w-full px-3 py-2 border-2 border-emerald-500 rounded-xl outline-none bg-white">
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeEditModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-xl text-sm transition">取消</button>
+        <button id="saveEditBtn" onclick="saveEditRecord()" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 rounded-xl text-sm transition shadow">儲存修改並同步</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = "1234";
+    let records = [];
+    let receivers = [];
+    let stringers = [];
+    let currentSigningIndex = null;
+    let currentEditingIndex = null;
+    let canvas, ctx, isDrawing = false;
+
+    window.onload = function() {
+      document.getElementById('receiveDate').valueAsDate = new Date();
+      const savedUrl = localStorage.getItem('ey_script_url');
+      if (savedUrl) document.getElementById('scriptUrl').value = savedUrl;
+
+      const savedReceivers = localStorage.getItem('ey_receivers');
+      receivers = savedReceivers ? JSON.parse(savedReceivers) : ["心怡", "小明"];
+
+      const savedStringers = localStorage.getItem('ey_stringers');
+      stringers = savedStringers ? JSON.parse(savedStringers) : ["憲", "銘"];
+
+      updateStaffDropdowns();
+      renderStaffTags();
+
+      const savedRecords = localStorage.getItem('ey_records');
+      if (savedRecords) {
+        records = JSON.parse(savedRecords);
+      } else {
+        records = [];
+        saveLocal();
+      }
+
+      initCanvas();
+      renderRecords();
+      if (savedUrl) loadDataFromCloud(false);
+    };
+
+    function switchTab(tab) {
+      ['register', 'list', 'settings'].forEach(t => {
+        document.getElementById('section-' + t).classList.add('hidden');
+        document.getElementById('tab-' + t).classList.remove('bg-emerald-900', 'text-white', 'shadow');
+      });
+      document.getElementById('section-' + tab).classList.remove('hidden');
+      if(tab === 'register') document.getElementById('tab-register').classList.add('bg-emerald-700', 'text-white');
+      if(tab === 'list') document.getElementById('tab-list').classList.add('bg-amber-500', 'text-slate-900', 'shadow-sm');
+      if(tab === 'settings') document.getElementById('tab-settings').classList.add('bg-emerald-900', 'text-white');
+      if(tab === 'list') renderRecords();
+    }
+
+    function updateStaffDropdowns() {
+      const recSelect = document.getElementById('receiver');
+      const editRecSelect = document.getElementById('editReceiver');
+      const strSelect = document.getElementById('stringer');
+      const editStrSelect = document.getElementById('editStringer');
+
+      const buildOptions = (arr, currentVal) => {
+        let html = '<option value="">請選擇</option>';
+        arr.forEach(name => {
+          html += `<option value="${name}" ${name === currentVal ? 'selected' : ''}>${name}</option>`;
+        });
+        return html;
+      };
+
+      recSelect.innerHTML = buildOptions(receivers, recSelect.value);
+      editRecSelect.innerHTML = buildOptions(receivers, editRecSelect.value);
+      strSelect.innerHTML = buildOptions(stringers, strSelect.value);
+      editStrSelect.innerHTML = buildOptions(stringers, editStrSelect.value);
+    }
+
+    function renderStaffTags() {
+      document.getElementById('receiverTags').innerHTML = receivers.map((name, idx) => `
+        <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-xl text-sm font-medium">
+          ${name}
+          <button onclick="removeStaff('receiver', ${idx})" class="text-red-500 hover:text-red-700 font-bold ml-1">×</button>
+        </span>
+      `).join('');
+
+      document.getElementById('stringerTags').innerHTML = stringers.map((name, idx) => `
+        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 rounded-xl text-sm font-medium">
+          ${name}
+          <button onclick="removeStaff('stringer', ${idx})" class="text-red-500 hover:text-red-700 font-bold ml-1">×</button>
+        </span>
+      `).join('');
+    }
+
+    function addStaff(type) {
+      if (type === 'receiver') {
+        const input = document.getElementById('newReceiverInput');
+        const val = input.value.trim();
+        if (val && !receivers.includes(val)) {
+          receivers.push(val);
+          localStorage.setItem('ey_receivers', JSON.stringify(receivers));
+          input.value = '';
+          updateStaffDropdowns();
+          renderStaffTags();
+        }
+      } else if (type === 'stringer') {
+        const input = document.getElementById('newStringerInput');
+        const val = input.value.trim();
+        if (val && !stringers.includes(val)) {
+          stringers.push(val);
+          localStorage.setItem('ey_stringers', JSON.stringify(stringers));
+          input.value = '';
+          updateStaffDropdowns();
+          renderStaffTags();
+        }
+      }
+    }
+
+    function removeStaff(type, idx) {
+      if (type === 'receiver') {
+        if (receivers.length <= 1) return alert('至少需保留一位收拍人員！');
+        receivers.splice(idx, 1);
+        localStorage.setItem('ey_receivers', JSON.stringify(receivers));
+      } else if (type === 'stringer') {
+        if (stringers.length <= 1) return alert('至少需保留一位穿線師！');
+        stringers.splice(idx, 1);
+        localStorage.setItem('ey_stringers', JSON.stringify(stringers));
+      }
+      updateStaffDropdowns();
+      renderStaffTags();
+    }
+
+    function setTension(tStr) {
+      document.getElementById('racketSpec').value += tStr;
+    }
+
+    function updatePrice() {
+      const select = document.getElementById('stringType');
+      const customInput = document.getElementById('customString');
+      const priceInput = document.getElementById('price');
+      const opt = select.options[select.selectedIndex];
+      
+      if (select.value === '其他') {
+        customInput.classList.remove('hidden');
+        priceInput.value = '$250';
+      } else {
+        customInput.classList.add('hidden');
+        priceInput.value = '$' + (opt.getAttribute('data-price') || 250);
+      }
+    }
+
+    function saveLocal() {
+      localStorage.setItem('ey_records', JSON.stringify(records));
+    }
+
+    function saveScriptUrl() {
+      const url = document.getElementById('scriptUrl').value.trim();
+      localStorage.setItem('ey_script_url', url);
+      alert('已儲存網址！正在與雲端試算表連線...');
+      loadDataFromCloud(true);
+    }
+
+    async function loadDataFromCloud(showToast = false) {
+      const url = localStorage.getItem('ey_script_url');
+      if (!url) return;
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.status === 'ok' && Array.isArray(json.data)) {
+          records = json.data.map(r => ({
+            rowIndex: r.rowIndex,
+            id: r.id,
+            customerName: r.customerName,
+            contactInfo: r.contactInfo || '',
+            racketSpec: r.racketSpec,
+            stringType: r.stringType,
+            price: r.price,
+            receiver: r.receiver,
+            stringer: r.stringer,
+            receiveDate: r.receiveDate ? r.receiveDate.substring(0, 10) : '', // 👈 簡化收件日期為純年月日
+            pickupSign: r.pickupSign || '',
+            note: r.note || ''
+          })).reverse();
+          saveLocal();
+          renderRecords();
+          if (showToast) alert('✅ 已從 Google 試算表同步最新資料！');
+        }
+      } catch (e) {
+        if (showToast) alert('⚠️ 無法讀取雲端資料，請確認 Apps Script 部署權限設為「所有人」。');
+      }
+    }
+
+    async function submitForm(e) {
+      e.preventDefault();
+      let sType = document.getElementById('stringType').value;
+      if (sType === '其他') {
+        const custom = document.getElementById('customString').value.trim();
+        if (custom) sType = custom;
+      }
+
+      const newRecord = {
+        id: records.length + 1,
+        customerName: document.getElementById('customerName').value.trim(),
+        contactInfo: document.getElementById('contactInfo').value.trim(),
+        racketSpec: document.getElementById('racketSpec').value.trim(),
+        stringType: sType,
+        price: document.getElementById('price').value.trim(),
+        receiver: document.getElementById('receiver').value,
+        stringer: document.getElementById('stringer').value,
+        receiveDate: document.getElementById('receiveDate').value,
+        pickupSign: '',
+        note: document.getElementById('note').value.trim()
+      };
+
+      const btn = document.getElementById('submitBtn');
+      btn.innerText = "正在寫入雲端試算表...";
+      btn.disabled = true;
+
+      const url = localStorage.getItem('ey_script_url');
+      if (url) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(newRecord)
+          });
+          const result = await res.json();
+          if (result.row) newRecord.rowIndex = result.row;
+        } catch (err) {
+          console.error('寫入異常:', err);
+        }
+      }
+
+      records.unshift(newRecord);
+      saveLocal();
+      document.getElementById('addForm').reset();
+      document.getElementById('receiveDate').valueAsDate = new Date();
+      updatePrice();
+      btn.innerText = "確認送出並同步雲端試算表";
+      btn.disabled = false;
+      switchTab('list');
+    }
+
+    function renderRecords() {
+      const container = document.getElementById('recordsContainer');
+      if (records.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">目前沒有登記資料</div>';
+        return;
+      }
+
+      container.innerHTML = records.map((r, idx) => {
+        const isSigned = r.pickupSign && r.pickupSign.includes('已簽收');
+        let signDisplay = '尚未簽名';
+        let imageUrl = '';
+
+        if (isSigned) {
+          const lines = r.pickupSign.split('\n');
+          const timeStr = lines[0] || '';
+          imageUrl = lines.slice(1).join('\n').trim();
+
+          let previewUrl = imageUrl;
+          if (imageUrl.includes('drive.google.com')) {
+            const match = imageUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || imageUrl.match(/id=([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+              previewUrl = `https://lh3.googleusercontent.com/d/${match[1]}=s400`;
+            }
+          }
+
+          signDisplay = `
+            <div class="space-y-1">
+              <span class="text-emerald-700 font-medium">${timeStr}</span>
+              ${imageUrl ? `
+                <div>
+                  <a href="${imageUrl}" target="_blank" title="點擊檢視大圖">
+                    <img src="${previewUrl}" alt="顧客手寫簽名" class="h-16 border rounded bg-white p-1 shadow-sm hover:opacity-90 transition object-contain">
+                  </a>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+
+        return `
+          <div class="bg-white p-4 rounded-2xl shadow-sm border ${isSigned ? 'border-emerald-300 bg-emerald-50/20' : 'border-amber-200'} flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-bold px-2 py-0.5 rounded ${isSigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                  ${isSigned ? '✅ 已取拍簽收' : '⏳ 待取拍'}
+                </span>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="openEditModal(${idx})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded font-medium transition">✏️ 修改</button>
+                  <button onclick="deleteRecord(${idx})" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-medium transition">🗑️ 刪除</button>
+                  <span class="text-xs text-slate-400 font-mono ml-1">#${r.id || (idx+1)}</span>
+                </div>
+              </div>
+              <div class="mt-2">
+                <h3 class="font-bold text-lg text-emerald-900">${r.customerName} ${r.contactInfo ? `<span class="text-xs font-normal text-slate-500">(${r.contactInfo})</span>` : ''}</h3>
+                <p class="text-sm font-medium text-slate-700">🏸 ${r.racketSpec}</p>
+                <p class="text-xs text-slate-500 mt-1">線材：<span class="font-bold text-emerald-800">${r.stringType}</span> | 費用：<span class="font-bold text-red-600">${r.price}</span></p>
+                <p class="text-xs text-slate-500 mt-0.5">收拍：${r.receiver || '未填'} | 穿線師：${r.stringer || '未填'} | 收件：${r.receiveDate ? r.receiveDate.substring(0, 10) : ''}</p>
+                ${r.note ? `<p class="text-xs bg-amber-50 text-amber-900 p-1.5 rounded mt-2">備註：${r.note}</p>` : ''}
+              </div>
+            </div>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+              <div class="text-xs text-slate-600">
+                ${signDisplay}
+              </div>
+              <div>
+                ${isSigned 
+                  ? `<button onclick="openSignModal(${idx})" class="text-xs bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-3 py-1.5 rounded-lg font-medium transition">重簽</button>`
+                  : `<button onclick="openSignModal(${idx})" class="text-xs bg-amber-500 hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-lg font-bold transition shadow-sm">✍️ 顧客現場簽收</button>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const PROTECTED_FIELD_IDS = [
+      'editCustomerName', 'editContactInfo', 'editRacketSpec',
+      'editStringType', 'editPrice', 'editReceiver', 'editReceiveDate'
+    ];
+
+    function lockProtectedFields() {
+      PROTECTED_FIELD_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        el.disabled = true;
+        el.classList.add('locked-field');
+      });
+      document.getElementById('editPermStatus').innerText = '🔒 目前僅開放修改「穿線師」與「備註」';
+      document.getElementById('unlockBtn').classList.remove('hidden');
+    }
+
+    function unlockAllEditFields() {
+      const pwd = prompt("請輸入主管密碼以解鎖所有欄位：");
+      if (pwd !== ADMIN_PASSWORD) {
+        if (pwd !== null) alert("❌ 密碼錯誤，無法解鎖！");
+        return;
+      }
+      PROTECTED_FIELD_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        el.disabled = false;
+        el.classList.remove('locked-field');
+      });
+      document.getElementById('editPermStatus').innerText = '🔓 已啟用主管權限，可修改所有欄位';
+      document.getElementById('unlockBtn').classList.add('hidden');
+    }
+
+    function openEditModal(idx) {
+      currentEditingIndex = idx;
+      const r = records[idx];
+      document.getElementById('editCustomerName').value = r.customerName || '';
+      document.getElementById('editContactInfo').value = r.contactInfo || '';
+      document.getElementById('editRacketSpec').value = r.racketSpec || '';
+      document.getElementById('editStringType').value = r.stringType || '';
+      document.getElementById('editPrice').value = r.price || '';
+      
+      updateStaffDropdowns();
+      document.getElementById('editReceiver').value = r.receiver || '';
+      document.getElementById('editStringer').value = r.stringer || '';
+
+      document.getElementById('editReceiveDate').value = r.receiveDate ? r.receiveDate.substring(0, 10) : '';
+      document.getElementById('editNote').value = r.note || '';
+
+      lockProtectedFields();
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+      currentEditingIndex = null;
+    }
+
+    async function saveEditRecord() {
+      if (currentEditingIndex === null) return;
+      const oldRecord = records[currentEditingIndex];
+      const updated = {
+        ...oldRecord,
+        customerName: document.getElementById('editCustomerName').value.trim(),
+        contactInfo: document.getElementById('editContactInfo').value.trim(),
+        racketSpec: document.getElementById('editRacketSpec').value.trim(),
+        stringType: document.getElementById('editStringType').value.trim(),
+        price: document.getElementById('editPrice').value.trim(),
+        receiver: document.getElementById('editReceiver').value,
+        stringer: document.getElementById('editStringer').value,
+        receiveDate: document.getElementById('editReceiveDate').value.trim(),
+        note: document.getElementById('editNote').value.trim()
+      };
+
+      const btn = document.getElementById('saveEditBtn');
+      btn.innerText = "同步更新中...";
+      btn.disabled = true;
+
+      const url = localStorage.getItem('ey_script_url');
+      if (url) {
+        try {
+          await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: "edit",
+              rowIndex: oldRecord.rowIndex,
+              oldCustomerName: oldRecord.customerName,
+              ...updated
+            })
+          });
+        } catch (err) {
+          console.error('雲端修改同步失敗:', err);
+        }
+      }
+
+      records[currentEditingIndex] = updated;
+      saveLocal();
+      renderRecords();
+      btn.innerText = "儲存修改並同步";
+      btn.disabled = false;
+      closeEditModal();
+    }
+
+    async function deleteRecord(idx) {
+      const target = records[idx];
+      const pwd = prompt(`刪除紀錄需要主管權限。\n請輸入密碼以刪除「${target.customerName}」的資料：`);
+      if (pwd !== ADMIN_PASSWORD) {
+        if (pwd !== null) alert("❌ 密碼錯誤，無法刪除資料！");
+        return;
+      }
+
+      records.splice(idx, 1);
+      saveLocal();
+      renderRecords();
+
+      const url = localStorage.getItem('ey_script_url');
+      if (url) {
+        try {
+          await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: "delete",
+              rowIndex: target.rowIndex,
+              customerName: target.customerName
+            })
+          });
+          setTimeout(() => loadDataFromCloud(false), 1000);
+        } catch (err) {
+          console.error('雲端刪除同步失敗:', err);
+        }
+      }
+    }
+
+    function initCanvas() {
+      canvas = document.getElementById('signature-pad');
+      ctx = canvas.getContext('2d');
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#064e3b';
+
+      const getPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      };
+
+      const start = (e) => { isDrawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
+      const move = (e) => { if (!isDrawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
+      const end = () => { isDrawing = false; };
+
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', end);
+
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      canvas.addEventListener('touchend', end);
+    }
+
+    function clearSignature() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function openSignModal(idx) {
+      currentSigningIndex = idx;
+      document.getElementById('signCustomerName').innerText = `顧客：${records[idx].customerName} (${records[idx].racketSpec})`;
+      document.getElementById('signModal').classList.remove('hidden');
+      clearSignature();
+    }
+
+    function closeSignModal() {
+      document.getElementById('signModal').classList.add('hidden');
+      currentSigningIndex = null;
+    }
+
+    async function confirmSignature() {
+      if (currentSigningIndex === null) return;
+      const dataURL = canvas.toDataURL('image/png');
+      const nowStr = new Date().toLocaleString('zh-TW', { hour12: false });
+      
+      const record = records[currentSigningIndex];
+      const url = localStorage.getItem('ey_script_url');
+      
+      if (!url) {
+        alert('請先至「設定」分頁填寫 Apps Script 網址！');
+        return;
+      }
+
+      const btn = document.getElementById('confirmSignBtn');
+      btn.innerText = "上傳中...";
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: "sign",
+            rowIndex: record.rowIndex,
+            customerName: record.customerName,
+            signDate: nowStr,
+            signatureBase64: dataURL
+          })
+        });
+        
+        const result = await response.json();
+        if (result.status === 'ok') {
+          records[currentSigningIndex].pickupSign = `${nowStr} 已簽收\n${result.fileUrl}`;
+          saveLocal();
+          renderRecords();
+          closeSignModal();
+          alert('✅ 簽名已成功上傳並同步至 Google 試算表與雲端硬碟！');
+        } else {
+          alert('❌ 雲端上傳失敗：' + (result.message || '未知錯誤'));
+        }
+      } catch (err) {
+        alert('⚠️ 網路連線或授權異常，請確認 Apps Script 部署權限設為「所有人」。');
+      } finally {
+        btn.innerText = "確認簽收並上傳";
+        btn.disabled = false;
+      }
+    }
+
+    function exportCSV() {
+      let csv = '\ufeff序號,顧客姓名,聯絡資訊,球拍與磅數,線材,費用,收拍人員,穿線師,收件日期,取拍簽收,備註\n';
+      records.forEach(r => {
+        csv += `"${r.id}","${r.customerName}","${r.contactInfo || ''}","${r.racketSpec}","${r.stringType}","${r.price}","${r.receiver}","${r.stringer}","${r.receiveDate}","${r.pickupSign}","${r.note}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = '葉羽球館_穿線登記備份.csv';
+      link.click();
+    }
+  </script>
+</body>
+</html>
