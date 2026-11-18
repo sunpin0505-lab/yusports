@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>葉羽球館｜庫存盤點系統</title>
+  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html { font-size: 19px; }
+    body { 
+      touch-action: manipulation; 
+      background-color: #f0fdf4; 
+      color: #064e3b; 
+      font-family: system-ui, -apple-system, sans-serif; 
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+  </style>
+</head>
+<body class="min-h-screen pb-28">
+  <!-- 頂部導覽列 -->
+  <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <img src="logo1.png" alt="葉羽球館 Logo" class="w-9 h-9 rounded-full object-cover bg-white p-0.5 shadow">
+        <div>
+          <h1 class="font-bold text-lg leading-tight">葉羽球館</h1>
+          <p class="text-xs text-emerald-200">庫存商品盤點系統</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="loadInventoryFromSheet(true)" class="text-xs bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg font-medium transition">🔄 同步試算表</button>
+        <span id="diffBadge" class="text-xs bg-emerald-900 text-emerald-100 font-bold px-2.5 py-1.5 rounded-full">盤差：0</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 mt-4 space-y-4">
+    <!-- 盤點人員、日期與分類過濾列 -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-bold text-emerald-800 mb-1">盤點人員 *</label>
+          <select id="staffName" class="w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-medium text-base">
+            <option value="">請選擇盤點人員</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-emerald-800 mb-1">盤點日期</label>
+          <input type="date" id="checkDate" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-base">
+        </div>
+      </div>
+
+      <!-- 分類分頁切換列 -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+        <div class="flex gap-1.5 flex-wrap" id="categoryFilters">
+          <button type="button" onclick="filterCategory('全部')" class="cat-btn bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold">全部</button>
+          <button type="button" onclick="filterCategory('羽球與消耗品')" class="cat-btn bg-emerald-50 text-emerald-800 px-2.5 py-1.5 rounded-lg text-xs font-bold">羽球與消耗品</button>
+          <button type="button" onclick="filterCategory('球拍類')" class="cat-btn bg-emerald-50 text-emerald-800 px-2.5 py-1.5 rounded-lg text-xs font-bold">球拍類</button>
+          <button type="button" onclick="filterCategory('飲品')" class="cat-btn bg-emerald-50 text-emerald-800 px-2.5 py-1.5 rounded-lg text-xs font-bold">飲品</button>
+          <button type="button" onclick="filterCategory('其他')" class="cat-btn bg-emerald-50 text-emerald-800 px-2.5 py-1.5 rounded-lg text-xs font-bold">其他</button>
+        </div>
+        <button type="button" onclick="fillAllSystemStock()" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-900 px-2.5 py-1.5 rounded-lg font-bold transition">
+          ⚡ 帶入帳存數量
+        </button>
+      </div>
+    </div>
+
+    <!-- 商品盤點卡片列表 -->
+    <div id="inventoryList" class="space-y-3"></div>
+
+    <!-- 送出按鈕 -->
+    <button type="button" id="submitBtn" onclick="submitInventory()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-4 px-4 rounded-2xl shadow-lg transition text-lg flex items-center justify-center gap-2">
+      <span>✅ 確認盤點完畢並同步試算表分頁</span>
+    </button>
+
+    <!-- 主管設定 -->
+    <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 text-xs">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-emerald-900 flex items-center gap-1.5">
+          <span>🔒</span> 雲端設定（主管專用）
+        </span>
+        <button type="button" id="toggleSettingsBtn" onclick="toggleProtectedSettings()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg font-medium transition">
+          解鎖設定
+        </button>
+      </div>
+      
+      <div id="settingsPanel" class="hidden mt-3 pt-3 border-t border-emerald-200 space-y-3">
+        <div class="space-y-1.5">
+          <label class="block font-bold text-emerald-800">Apps Script 網頁應用程式網址 (/exec)</label>
+          <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border rounded-xl font-mono text-[11px] bg-white outline-none">
+          <div class="flex gap-2">
+            <button type="button" onclick="saveScriptUrl()" class="bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-medium">儲存並同步試算表</button>
+            <button type="button" onclick="lockSettings()" class="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium">上鎖關閉</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const ADMIN_PASSWORD = "1234";
+    let items = [];
+    let currentFilter = '全部';
+
+    window.onload = function() {
+      document.getElementById('checkDate').valueAsDate = new Date();
+      const savedUrl = localStorage.getItem('ey_inventory_script_url') || localStorage.getItem('ey_script_url') || localStorage.getItem('ey_closing_script_url');
+      if (savedUrl) document.getElementById('scriptUrl').value = savedUrl;
+
+      loadStaffDropdown();
+
+      if (savedUrl) {
+        loadInventoryFromSheet(false);
+      } else {
+        const savedItems = localStorage.getItem('ey_inventory_items_v4');
+        if (savedItems) {
+          items = JSON.parse(savedItems);
+          renderList();
+        } else {
+          document.getElementById('inventoryList').innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400 text-sm border border-emerald-100">請先至下方「解鎖設定」填入 Apps Script 網址以讀取試算表分頁！</div>`;
+        }
+      }
+    };
+
+    function loadStaffDropdown() {
+      const staffSelect = document.getElementById('staffName');
+      const savedReceivers = localStorage.getItem('ey_receivers');
+      const receivers = savedReceivers ? JSON.parse(savedReceivers) : ["心怡", "小明", "憲", "銘"];
+      let html = '<option value="">請選擇盤點人員</option>';
+      receivers.forEach(name => html += `<option value="${name}">${name}</option>`);
+      staffSelect.innerHTML = html;
+    }
+
+    function saveItemsLocal() {
+      localStorage.setItem('ey_inventory_items_v4', JSON.stringify(items));
+    }
+
+    async function loadInventoryFromSheet(showToast = false) {
+      const url = localStorage.getItem('ey_inventory_script_url') || localStorage.getItem('ey_script_url') || localStorage.getItem('ey_closing_script_url');
+      if (!url) {
+        if (showToast) alert("⚠️ 尚未設定 Apps Script 網址！");
+        return;
+      }
+
+      if (showToast) event.target.innerText = "⏳ 同步中...";
+
+      try {
+        const res = await fetch(url + "?action=inventory");
+        const json = await res.json();
+        if (json.status === "ok" && Array.isArray(json.items)) {
+          items = json.items.map(item => ({
+            ...item,
+            actual: item.sysStock,
+            note: ""
+          }));
+          saveItemsLocal();
+          renderList();
+          if (showToast) alert("✅ 已成功從 Google 試算表各分類分頁同步最新商品！");
+        } else if (showToast) {
+          alert("ℹ️ 試算表各分頁中目前沒有找到商品資料。");
+        }
+      } catch (err) {
+        if (showToast) alert("⚠️ 同步失敗，請確認 Apps Script 網址與部署權限設為「所有人」。");
+        console.error(err);
+      } finally {
+        if (showToast) event.target.innerText = "🔄 同步試算表";
+      }
+    }
+
+    function filterCategory(cat) {
+      currentFilter = cat;
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        if (btn.innerText === cat) {
+          btn.classList.remove('bg-emerald-50', 'text-emerald-800');
+          btn.classList.add('bg-emerald-700', 'text-white');
+        } else {
+          btn.classList.remove('bg-emerald-700', 'text-white');
+          btn.classList.add('bg-emerald-50', 'text-emerald-800');
+        }
+      });
+      renderList();
+    }
+
+    function renderList() {
+      const container = document.getElementById('inventoryList');
+      let diffCount = 0;
+
+      items.forEach(item => {
+        if ((Number(item.actual) - Number(item.sysStock)) !== 0) diffCount++;
+      });
+
+      const badge = document.getElementById('diffBadge');
+      badge.innerText = `盤差：${diffCount}`;
+      badge.className = diffCount > 0 
+        ? "text-xs bg-red-500 text-white font-bold px-2.5 py-1.5 rounded-full shadow-sm"
+        : "text-xs bg-emerald-900 text-emerald-100 font-bold px-2.5 py-1.5 rounded-full";
+
+      const filtered = items.filter(item => currentFilter === '全部' || item.category === currentFilter);
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400 text-sm border border-emerald-100">此分類分頁目前尚無商品品項</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map((item) => {
+        const diff = Number(item.actual) - Number(item.sysStock);
+        let cardStyle = "border-emerald-200 bg-white";
+        let diffBadgeHtml = `<span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">✔ 相符</span>`;
+
+        if (diff < 0) {
+          cardStyle = "border-red-300 bg-red-50/40";
+          diffBadgeHtml = `<span class="text-xs font-bold px-2 py-0.5 rounded bg-red-500 text-white">盤差 ${diff}</span>`;
+        } else if (diff > 0) {
+          cardStyle = "border-blue-300 bg-blue-50/40";
+          diffBadgeHtml = `<span class="text-xs font-bold px-2 py-0.5 rounded bg-blue-600 text-white">盤差 +${diff}</span>`;
+        }
+
+        return `
+          <div class="p-4 rounded-2xl shadow-sm border-2 ${cardStyle} transition space-y-2.5">
+            <div class="flex justify-between items-start gap-2">
+              <div>
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 mr-1">${item.category}</span>
+                <span class="font-bold text-base text-slate-900">${item.name}</span>
+                <div class="text-xs text-slate-500 mt-1">
+                  帳存數量：<span class="font-bold text-slate-700">${item.sysStock}</span> ${item.unit}
+                </div>
+              </div>
+              <div class="shrink-0">${diffBadgeHtml}</div>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 pt-1">
+              <span class="text-xs font-bold text-emerald-900">實際盤點：</span>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="adjustQty(${item.id}, -1)" class="w-11 h-11 rounded-xl bg-slate-200 hover:bg-slate-300 active:scale-95 text-slate-800 font-bold text-xl flex items-center justify-center shadow-sm">－</button>
+                <input type="number" inputmode="numeric" value="${item.actual}" onchange="setQty(${item.id}, this.value)" class="w-20 h-11 text-center font-bold text-lg border-2 border-emerald-400 rounded-xl bg-white outline-none focus:ring-2 focus:ring-emerald-600">
+                <button type="button" onclick="adjustQty(${item.id}, 1)" class="w-11 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xl flex items-center justify-center shadow-sm">＋</button>
+              </div>
+            </div>
+
+            <div>
+              <input type="text" value="${item.note || ''}" onchange="setNote(${item.id}, this.value)" placeholder="${diff !== 0 ? '⚠️ 請填寫盤差原因（如：破損、未登帳）' : '備註（選填）'}" class="w-full px-3 py-1.5 border rounded-xl text-xs outline-none ${diff !== 0 ? 'border-red-300 bg-white' : 'border-slate-200 bg-slate-50/70'}">
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function adjustQty(id, delta) {
+      const target = items.find(i => i.id === id);
+      if (target) {
+        target.actual = Math.max(0, Number(target.actual) + delta);
+        saveItemsLocal();
+        renderList();
+      }
+    }
+
+    function setQty(id, val) {
+      const target = items.find(i => i.id === id);
+      if (target) {
+        target.actual = Math.max(0, parseInt(val, 10) || 0);
+        saveItemsLocal();
+        renderList();
+      }
+    }
+
+    function setNote(id, val) {
+      const target = items.find(i => i.id === id);
+      if (target) {
+        target.note = val.trim();
+        saveItemsLocal();
+      }
+    }
+
+    function fillAllSystemStock() {
+      if (!confirm("確定將目前顯示的品項「實際盤點」重設為與「帳存數量」一致嗎？")) return;
+      items.forEach(item => {
+        if (currentFilter === '全部' || item.category === currentFilter) {
+          item.actual = item.sysStock;
+          item.note = "";
+        }
+      });
+      saveItemsLocal();
+      renderList();
+    }
+
+    function toggleProtectedSettings() {
+      const panel = document.getElementById('settingsPanel');
+      if (!panel.classList.contains('hidden')) {
+        lockSettings();
+        return;
+      }
+      const pwd = prompt("請輸入主管密碼以開啟設定：");
+      if (pwd === ADMIN_PASSWORD) {
+        panel.classList.remove('hidden');
+        document.getElementById('toggleSettingsBtn').innerText = "收合設定";
+      } else if (pwd !== null) {
+        alert("❌ 密碼錯誤！");
+      }
+    }
+
+    function lockSettings() {
+      document.getElementById('settingsPanel').classList.add('hidden');
+      document.getElementById('toggleSettingsBtn').innerText = "解鎖設定";
+    }
+
+    function saveScriptUrl() {
+      const url = document.getElementById('scriptUrl').value.trim();
+      localStorage.setItem('ey_inventory_script_url', url);
+      alert('✅ 雲端同步網址已儲存！正在讀取各分頁...');
+      loadInventoryFromSheet(true);
+    }
+
+    async function submitInventory() {
+      const staff = document.getElementById('staffName').value;
+      if (!staff) {
+        alert('❌ 請先選擇盤點人員！');
+        document.getElementById('staffName').focus();
+        return;
+      }
+
+      const dateVal = document.getElementById('checkDate').value;
+      const url = localStorage.getItem('ey_inventory_script_url') || localStorage.getItem('ey_script_url') || localStorage.getItem('ey_closing_script_url');
+
+      if (!url) {
+        alert('⚠️ 尚未設定 Apps Script 網址！');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.innerText = "⏳ 正在同步更新各分類分頁帳存...";
+      btn.disabled = true;
+
+      const payload = {
+        action: "inventory",
+        date: dateVal,
+        staff: staff,
+        items: items.map(i => ({
+          category: i.category,
+          name: i.name,
+          unit: i.unit,
+          sysStock: Number(i.sysStock),
+          actual: Number(i.actual),
+          diff: Number(i.actual) - Number(i.sysStock),
+          note: i.note || "無"
+        }))
+      };
+
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        alert('🎉 盤點完成！已同步歸檔紀錄，並自動更新試算表各分類分頁的帳存數量。');
+        loadInventoryFromSheet(false);
+      } catch (err) {
+        alert('⚠️ 同步失敗，請確認網路與 Apps Script 設定。');
+        console.error(err);
+      } finally {
+        btn.innerText = "✅ 確認盤點完畢並同步試算表";
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
