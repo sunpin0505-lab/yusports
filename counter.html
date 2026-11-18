@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>葉羽球館｜閉店關帳明細</title>
+  <link rel="apple-touch-icon" href="zh_logo.png">
+  <link rel="icon" type="image/png" href="logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html { font-size: 18px; } /* 手機與平板舒適的大字體 */
+    body { 
+      touch-action: manipulation; 
+      background-color: #f0fdf4; 
+      color: #064e3b; 
+      font-family: system-ui, -apple-system, sans-serif; 
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+  </style>
+</head>
+<body class="min-h-screen pb-28">
+  <!-- 頂部導覽列 -->
+  <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <img src="logo1.png" alt="葉羽球館 Logo" class="w-9 h-9 rounded-full object-cover bg-white p-0.5 shadow">
+        <div>
+          <h1 class="font-bold text-lg leading-tight">葉羽球館</h1>
+          <p class="text-xs text-emerald-200">閉店關帳與現金點交</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-xl mx-auto px-4 mt-4 space-y-4">
+    <!-- 1. 當班人員與日期設定 -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-bold text-emerald-800 mb-1">當班清點人 *</label>
+          <select id="staffName" class="w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-medium text-base">
+            <option value="">請選擇清點人</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-emerald-800 mb-1">關帳日期</label>
+          <input type="date" id="checkDate" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-base">
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 當日營業額統計與多餘現金點交 -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 space-y-4">
+      <h2 class="font-bold text-base text-emerald-900 border-b pb-2 flex items-center justify-between">
+        <span>💳 當日營業額統計</span>
+        <span class="text-xs font-normal text-slate-500">單位：新台幣 (NT$)</span>
+      </h2>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-emerald-800 mb-1">現金金額</label>
+          <input type="number" id="cashInput" inputmode="numeric" placeholder="0" oninput="calculateTotal()" class="w-full px-4 py-3 text-lg font-bold border-2 border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none bg-emerald-50/30">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-emerald-800 mb-1">信用卡金額</label>
+          <input type="number" id="creditInput" inputmode="numeric" placeholder="0" oninput="calculateTotal()" class="w-full px-4 py-3 text-lg font-bold border-2 border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none bg-emerald-50/30">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-emerald-800 mb-1">TWQR金額</label>
+          <input type="number" id="twqrInput" inputmode="numeric" placeholder="0" oninput="calculateTotal()" class="w-full px-4 py-3 text-lg font-bold border-2 border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-600 outline-none bg-emerald-50/30">
+        </div>
+      </div>
+
+      <!-- 總營收即時計算顯示 -->
+      <div class="bg-emerald-900 text-white p-4 rounded-xl flex justify-between items-center shadow-md">
+        <div>
+          <div class="text-xs text-emerald-200">營業額總計</div>
+          <div class="text-[11px] text-emerald-300 mt-0.5">現金 + 信用卡 + TWQR</div>
+        </div>
+        <div id="displayTotal" class="text-2xl font-black tracking-wide">$0</div>
+      </div>
+
+      <!-- 多餘的現金點交欄位 -->
+      <div class="pt-3 border-t border-slate-100 space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-amber-800 mb-1">💰 多餘現金點交金額（投入金庫 / 上繳金額）</label>
+          <input type="number" id="surplusCashInput" inputmode="numeric" placeholder="0" class="w-full px-4 py-3 text-lg font-bold border-2 border-amber-400 rounded-xl focus:ring-2 focus:ring-amber-600 outline-none bg-amber-50/30">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">備註說明（選填）</label>
+          <input type="text" id="closingNote" placeholder="可填寫找零補充或交接事項" class="w-full px-3 py-2.5 border rounded-xl text-sm outline-none bg-slate-50">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 送出關帳按鈕 -->
+    <button type="button" id="submitBtn" onclick="submitClosing()" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-900 font-bold py-4 px-4 rounded-2xl shadow-lg transition text-lg flex items-center justify-center gap-2">
+      <span>✅ 確認關帳並同步試算表</span>
+    </button>
+
+    <!-- 主管設定區塊 (受密碼保護) -->
+    <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 text-xs">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-emerald-900 flex items-center gap-1.5">
+          <span>🔒</span> 雲端網址設定（主管專用）
+        </span>
+        <button type="button" id="toggleSettingsBtn" onclick="toggleProtectedSettings()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg font-medium transition">
+          解鎖設定
+        </button>
+      </div>
+      
+      <div id="settingsPanel" class="hidden mt-3 pt-3 border-t border-emerald-200 space-y-3">
+        <div class="space-y-1.5">
+          <label class="block font-bold text-emerald-800">Apps Script 網頁應用程式網址 (/exec)</label>
+          <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border rounded-xl font-mono text-[11px] bg-white outline-none">
+          <div class="flex gap-2">
+            <button type="button" onclick="saveScriptUrl()" class="bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-medium">儲存網址</button>
+            <button type="button" onclick="lockSettings()" class="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium">關閉設定</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const ADMIN_PASSWORD = "1234";
+
+    window.onload = function() {
+      document.getElementById('checkDate').valueAsDate = new Date();
+      
+      const savedUrl = localStorage.getItem('ey_closing_script_url') || localStorage.getItem('ey_script_url');
+      if (savedUrl) document.getElementById('scriptUrl').value = savedUrl;
+
+      loadStaffDropdown();
+      calculateTotal();
+    };
+
+    function loadStaffDropdown() {
+      const staffSelect = document.getElementById('staffName');
+      const savedReceivers = localStorage.getItem('ey_receivers');
+      const receivers = savedReceivers ? JSON.parse(savedReceivers) : ["心怡", "小明", "憲", "銘"];
+      let html = '<option value="">請選擇清點人</option>';
+      receivers.forEach(name => html += `<option value="${name}">${name}</option>`);
+      staffSelect.innerHTML = html;
+    }
+
+    function calculateTotal() {
+      const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+      const credit = parseFloat(document.getElementById('creditInput').value) || 0;
+      const twqr = parseFloat(document.getElementById('twqrInput').value) || 0;
+
+      const totalRev = cash + credit + twqr;
+      document.getElementById('displayTotal').innerText = `$${totalRev.toLocaleString()}`;
+    }
+
+    function toggleProtectedSettings() {
+      const panel = document.getElementById('settingsPanel');
+      if (!panel.classList.contains('hidden')) {
+        lockSettings();
+        return;
+      }
+      const pwd = prompt("請輸入主管密碼以開啟設定：");
+      if (pwd === ADMIN_PASSWORD) {
+        panel.classList.remove('hidden');
+        document.getElementById('toggleSettingsBtn').innerText = "收合設定";
+      } else if (pwd !== null) {
+        alert("❌ 密碼錯誤！");
+      }
+    }
+
+    function lockSettings() {
+      document.getElementById('settingsPanel').classList.add('hidden');
+      document.getElementById('toggleSettingsBtn').innerText = "解鎖設定";
+    }
+
+    function saveScriptUrl() {
+      const url = document.getElementById('scriptUrl').value.trim();
+      localStorage.setItem('ey_closing_script_url', url);
+      alert('✅ 關帳同步網址已儲存！');
+      lockSettings();
+    }
+
+    async function submitClosing() {
+      const staff = document.getElementById('staffName').value;
+      if (!staff) {
+        alert('❌ 請先選擇當班清點人！');
+        document.getElementById('staffName').focus();
+        return;
+      }
+
+      const cash = parseFloat(document.getElementById('cashInput').value) || 0;
+      const credit = parseFloat(document.getElementById('creditInput').value) || 0;
+      const twqr = parseFloat(document.getElementById('twqrInput').value) || 0;
+      const surplusCash = parseFloat(document.getElementById('surplusCashInput').value) || 0;
+
+      const url = localStorage.getItem('ey_closing_script_url') || localStorage.getItem('ey_script_url');
+      if (!url) {
+        alert('⚠️ 尚未設定 Apps Script 網址，請先解鎖下方設定填入網址。');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.innerText = "⏳ 正在同步關帳資料至 Google 試算表...";
+      btn.disabled = true;
+
+      const totalRev = cash + credit + twqr;
+
+      const payload = {
+        action: "closing",
+        date: document.getElementById('checkDate').value,
+        staff: staff,
+        cash: cash,
+        credit: credit,
+        twqr: twqr,
+        total: totalRev,
+        surplusCash: surplusCash,
+        note: document.getElementById('closingNote').value.trim() || "無"
+      };
+
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        alert('🎉 閉店關帳資料已成功送出並寫入 Google 試算表！');
+      } catch (err) {
+        alert('⚠️ 雲端同步失敗，請確認網路連線與 Apps Script 部署設定。');
+        console.error(err);
+      } finally {
+        btn.innerText = "✅ 確認關帳並同步試算表";
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
