@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>葉羽球館｜閉店檢查系統</title>
+  <!-- 🍎 平板桌面捷徑與分頁圖示 -->
+  <link rel="apple-touch-icon" href="zh_logo.png">
+  <link rel="icon" type="image/png" href="zh_logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html {
+      font-size: 20px; /* 手機與 PAD 整體字體放大 */
+    }
+    body { 
+      touch-action: manipulation; 
+      background-color: #f0fdf4; 
+      color: #064e3b; 
+      font-family: system-ui, -apple-system, sans-serif; 
+    }
+    .checklist-item:active { transform: scale(0.98); }
+  </style>
+</head>
+<body class="min-h-screen pb-24">
+  <!-- 頂部導覽列 -->
+  <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <img src="logo1.png" alt="葉羽球館 Logo" class="w-9 h-9 rounded-full object-cover bg-white p-0.5 shadow">
+        <div>
+          <h1 class="font-bold text-lg leading-tight">葉羽球館</h1>
+          <p class="text-xs text-emerald-200">晚班閉店巡檢與月報系統</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <span id="progressText" class="text-xs bg-amber-500 text-slate-900 font-bold px-2.5 py-1 rounded-full shadow-sm">已完成 0 / 38</span>
+      </div>
+    </div>
+    <!-- 進度條 -->
+    <div class="w-full bg-emerald-900 h-1.5">
+      <div id="progressBar" class="bg-amber-400 h-1.5 transition-all duration-300" style="width: 0%"></div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 mt-4 space-y-4">
+    <!-- 交接人員與日期區塊 -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-bold text-emerald-800 mb-1">交接人員 *</label>
+        <select id="staffName" class="w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-medium text-base">
+          <option value="">請選擇交接人員</option>
+          <option value="心怡">心怡</option>
+          <option value="小明">小明</option>
+          <option value="憲">憲</option>
+          <option value="銘">銘</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-bold text-emerald-800 mb-1">巡檢日期</label>
+        <input type="date" id="checkDate" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-base">
+      </div>
+    </div>
+
+    <!-- 檢查清單容器 -->
+    <form id="checklistForm" onsubmit="submitChecklist(event)" class="space-y-4">
+      <div id="sectionsContainer" class="space-y-4"></div>
+
+      <!-- 異常與備註區塊 -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 space-y-2">
+        <label class="block text-sm font-bold text-emerald-800">⚠️ 異常說明與其他交接事項 (選填)</label>
+        <textarea id="noteText" rows="3" placeholder="如有設備異常、需報修或交接事項請填寫於此..." class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></textarea>
+      </div>
+
+      <!-- 送出按鈕 -->
+      <button type="submit" id="submitBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-4 px-4 rounded-2xl shadow-lg transition text-lg flex items-center justify-center gap-2">
+        <span>✅ 確認全數檢查完畢並送出歸檔</span>
+      </button>
+    </form>
+
+    <!-- 設定區塊 (受密碼保護) -->
+    <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 text-xs">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-emerald-900 flex items-center gap-1.5">
+          <span>🔒</span> 雲端同步設定（主管專用）
+        </span>
+        <button type="button" id="toggleSettingsBtn" onclick="toggleProtectedSettings()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg font-medium transition">
+          解鎖設定
+        </button>
+      </div>
+      
+      <!-- 密碼驗證通過後才會展開的設定面板 -->
+      <div id="settingsPanel" class="hidden mt-3 pt-3 border-t border-emerald-200 space-y-2">
+        <label class="block font-medium text-emerald-800">Apps Script 網頁應用程式網址 (/exec)</label>
+        <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 border rounded-xl font-mono text-[11px] bg-white outline-none focus:ring-2 focus:ring-emerald-500">
+        <div class="flex gap-2 pt-1">
+          <button type="button" onclick="saveScriptUrl()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-lg font-medium transition">儲存網址</button>
+          <button type="button" onclick="lockSettings()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-lg font-medium transition">上鎖關閉</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const ADMIN_PASSWORD = "1234";
+
+    const checklistData = [
+      { title: "1號場", items: ["風扇關閉", "冷氣關閉"] },
+      { title: "2號場", items: ["風扇關閉", "冷氣關閉"] },
+      { title: "3號場", items: ["風扇關閉", "冷氣關閉"] },
+      { title: "4號場", items: ["風扇關閉", "冷氣關閉", "抽風機關閉"] },
+      { title: "5號場", items: ["風扇關閉", "冷氣關閉", "窗簾窗戶關閉"] },
+      { title: "6號場", items: ["風扇關閉", "冷氣關閉", "窗簾窗戶關閉"] },
+      { title: "7號場", items: ["風扇關閉", "冷氣關閉", "窗簾窗戶關閉"] },
+      { title: "8號場", items: ["風扇關閉", "冷氣關閉", "抽風機關閉", "窗簾窗戶關閉", "後門關閉"] },
+      { title: "櫃台", items: ["風扇關閉", "冷氣關閉", "熱水器關閉", "灑水器關閉", "音響設備關閉", "茶葉蛋已加熱並關閉", "後門關閉", "前門開關關閉", "門禁設定開啟", "當日帳務皆付款完成", "會議室門上鎖", "停車場路燈開啟"] },
+      { title: "休息區", items: ["風扇關閉", "冷氣關閉", "窗簾窗戶關閉"] }
+    ];
+
+    let totalItemsCount = 0;
+
+    window.onload = function() {
+      document.getElementById('checkDate').valueAsDate = new Date();
+      const savedUrl = localStorage.getItem('ey_closing_script_url');
+      if (savedUrl) document.getElementById('scriptUrl').value = savedUrl;
+
+      renderChecklist();
+      updateProgress();
+    };
+
+    function toggleProtectedSettings() {
+      const panel = document.getElementById('settingsPanel');
+      if (!panel.classList.contains('hidden')) {
+        lockSettings();
+        return;
+      }
+      const pwd = prompt("請輸入主管密碼以開啟雲端設定：");
+      if (pwd === ADMIN_PASSWORD) {
+        panel.classList.remove('hidden');
+        document.getElementById('toggleSettingsBtn').innerText = "收合設定";
+      } else if (pwd !== null) {
+        alert("❌ 密碼錯誤，無法進入設定！");
+      }
+    }
+
+    function lockSettings() {
+      document.getElementById('settingsPanel').classList.add('hidden');
+      document.getElementById('toggleSettingsBtn').innerText = "解鎖設定";
+    }
+
+    function renderChecklist() {
+      const container = document.getElementById('sectionsContainer');
+      let html = '';
+      let globalIndex = 0;
+
+      checklistData.forEach((sec, sIdx) => {
+        html += `
+          <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 space-y-3">
+            <div class="flex justify-between items-center border-b pb-2">
+              <h2 class="font-bold text-emerald-900 text-base">📍 【${sec.title}】</h2>
+              <button type="button" onclick="toggleSection(${sIdx})" class="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg font-medium">全選本區</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        `;
+
+        sec.items.forEach((item, iIdx) => {
+          const id = `chk_${sIdx}_${iIdx}`;
+          html += `
+            <label id="label_${id}" class="checklist-item flex items-center p-3 rounded-xl border-2 border-amber-200 bg-amber-50/40 cursor-pointer transition select-none">
+              <input type="checkbox" id="${id}" data-section="${sec.title}" data-item="${item}" onchange="updateProgress()" class="w-5 h-5 accent-emerald-600 rounded mr-3">
+              <span class="text-sm font-bold text-slate-800">${item}</span>
+            </label>
+          `;
+          globalIndex++;
+        });
+
+        html += `</div></div>`;
+      });
+
+      container.innerHTML = html;
+      totalItemsCount = globalIndex;
+    }
+
+    function toggleSection(sIdx) {
+      const checkboxes = document.querySelectorAll(`input[id^="chk_${sIdx}_"]`);
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      checkboxes.forEach(cb => cb.checked = !allChecked);
+      updateProgress();
+    }
+
+    function updateProgress() {
+      let checked = 0;
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        const label = document.getElementById(`label_${cb.id}`);
+        if (cb.checked) {
+          checked++;
+          label.classList.remove('border-amber-200', 'bg-amber-50/40');
+          label.classList.add('border-emerald-300', 'bg-emerald-50/60');
+        } else {
+          label.classList.remove('border-emerald-300', 'bg-emerald-50/60');
+          label.classList.add('border-amber-200', 'bg-amber-50/40');
+        }
+      });
+
+      document.getElementById('progressText').innerText = `已完成 ${checked} / ${totalItemsCount}`;
+      const pct = (checked / totalItemsCount) * 100;
+      document.getElementById('progressBar').style.width = pct + '%';
+    }
+
+    function saveScriptUrl() {
+      const url = document.getElementById('scriptUrl').value.trim();
+      localStorage.setItem('ey_closing_script_url', url);
+      alert('✅ 雲端同步網址已儲存！');
+      lockSettings();
+    }
+
+    async function submitChecklist(e) {
+      e.preventDefault();
+      const staff = document.getElementById('staffName').value;
+      if (!staff) {
+        alert('❌ 請先選擇交接人員！');
+        document.getElementById('staffName').focus();
+        return;
+      }
+
+      const dateVal = document.getElementById('checkDate').value;
+      const noteVal = document.getElementById('noteText').value.trim() || "無";
+
+      let checkedCount = 0;
+      let uncheckedList = [];
+      let responsesMap = {};
+
+      checklistData.forEach(sec => {
+        responsesMap[sec.title] = [];
+        sec.items.forEach(item => {
+          const cb = Array.from(document.querySelectorAll('input[type="checkbox"]')).find(
+            el => el.getAttribute('data-section') === sec.title && el.getAttribute('data-item') === item
+          );
+          if (cb && cb.checked) {
+            checkedCount++;
+            responsesMap[sec.title].push(item);
+          } else {
+            uncheckedList.push(`${sec.title}-${item}`);
+          }
+        });
+        responsesMap[sec.title] = responsesMap[sec.title].join(', ');
+      });
+
+      const payload = {
+        action: "closing",
+        date: dateVal,
+        staff: staff,
+        checkedCount: checkedCount,
+        totalCount: totalItemsCount,
+        uncheckedList: uncheckedList.length === 0 ? "無（全數完成）" : uncheckedList.join('、'),
+        note: noteVal,
+        responses: responsesMap
+      };
+
+      const url = localStorage.getItem('ey_closing_script_url');
+      if (!url) {
+        alert('⚠️ 尚未設定 Apps Script 網址，請主管解鎖下方設定填入網址後再送出。');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.innerText = "⏳ 正在同步至 Google 試算表...";
+      btn.disabled = true;
+
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        alert('🎉 閉店檢查已成功送出並自動歸檔至月報總表！');
+        location.reload();
+      } catch (err) {
+        alert('⚠️ 雲端同步失敗，請確認網路連線與 Apps Script 部署設定。');
+        console.error(err);
+      } finally {
+        btn.innerText = "✅ 確認全數檢查完畢並送出歸檔";
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
