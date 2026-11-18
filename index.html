@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>葉羽球館｜穿線登記與取拍簽收系統</title>
   <link rel="apple-touch-icon" href="zh_logo.png">
-<link rel="icon" type="image/png" href="zh_logo.png">
+  <link rel="icon" type="image/png" href="zh_logo.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    html { font-size: 20px; } /* 放大手機與 PAD 整體字體與按鈕比例 */
     body { touch-action: manipulation; background-color: #f0fdf4; color: #064e3b; font-family: system-ui, -apple-system, sans-serif; }
     #signature-pad { touch-action: none; background: #ffffff; border: 2px dashed #059669; border-radius: 0.5rem; cursor: crosshair; }
     .locked-field { background-color: #f1f5f9 !important; color: #64748b !important; cursor: not-allowed; }
@@ -15,22 +16,21 @@
 </head>
 <body class="min-h-screen pb-20">
   <header class="bg-emerald-800 text-white shadow-md sticky top-0 z-30">
-  <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-    <div class="flex items-center space-x-2">
-      <!-- 替換為您的 LOGO 圖片 (請根據您的檔案路徑調整 src) -->
-      <img src="logo.png" alt="葉羽球館 Logo" class="w-9 h-9 rounded-full object-cover bg-white p-0.5 shadow">
-      <div>
-        <h1 class="font-bold text-lg leading-tight">葉羽球館</h1>
-        <p class="text-xs text-emerald-200">穿線登記與現場簽收系統</p>
+    <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <img src="logo.png" alt="葉羽球館 Logo" class="w-9 h-9 rounded-full object-cover bg-white p-0.5 shadow">
+        <div>
+          <h1 class="font-bold text-lg leading-tight">葉羽球館</h1>
+          <p class="text-xs text-emerald-200">穿線登記與現場簽收系統</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="switchTab('register')" id="tab-register" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition">➕ 新增登記</button>
+        <button onclick="switchTab('list')" id="tab-list" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-lg text-sm font-bold transition shadow-sm">📋 待取拍清單</button>
+        <button onclick="switchTab('settings')" id="tab-settings" class="bg-emerald-900 hover:bg-emerald-800 text-emerald-200 px-2.5 py-1.5 rounded-lg text-sm transition">⚙️ 設定</button>
       </div>
     </div>
-    <div class="flex gap-2">
-      <button onclick="switchTab('register')" id="tab-register" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition">➕ 新增登記</button>
-      <button onclick="switchTab('list')" id="tab-list" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-lg text-sm font-bold transition shadow-sm">📋 待取拍清單</button>
-      <button onclick="switchTab('settings')" id="tab-settings" class="bg-emerald-900 hover:bg-emerald-800 text-emerald-200 px-2.5 py-1.5 rounded-lg text-sm transition">⚙️ 設定</button>
-    </div>
-  </div>
-</header>
+  </header>
 
   <main class="max-w-4xl mx-auto px-4 mt-4">
     <!-- 1. 新增登記頁面 -->
@@ -115,7 +115,7 @@
       <div id="recordsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
 
-    <!-- 3. 設定與人員管理頁面 -->
+    <!-- 3. 設定與人員管理頁面 (受密碼保護) -->
     <section id="section-settings" class="space-y-4 hidden">
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 space-y-4">
         <h2 class="text-lg font-bold text-emerald-900">🔗 Google 試算表 Apps Script 連動設定</h2>
@@ -272,6 +272,15 @@
     };
 
     function switchTab(tab) {
+      // 點擊「設定」分頁時進行主管密碼驗證
+      if (tab === 'settings') {
+        const pwd = prompt("請輸入主管密碼以進入設定頁面：");
+        if (pwd !== ADMIN_PASSWORD) {
+          if (pwd !== null) alert("❌ 密碼錯誤，無法進入設定！");
+          return;
+        }
+      }
+
       ['register', 'list', 'settings'].forEach(t => {
         document.getElementById('section-' + t).classList.add('hidden');
         document.getElementById('tab-' + t).classList.remove('bg-emerald-900', 'text-white', 'shadow');
@@ -404,7 +413,7 @@
             price: r.price,
             receiver: r.receiver,
             stringer: r.stringer,
-            receiveDate: r.receiveDate ? r.receiveDate.substring(0, 10) : '', // 👈 簡化收件日期為純年月日
+            receiveDate: r.receiveDate ? r.receiveDate.substring(0, 10) : '',
             pickupSign: r.pickupSign || '',
             note: r.note || ''
           })).reverse();
