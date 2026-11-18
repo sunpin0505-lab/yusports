@@ -165,7 +165,7 @@
     }
 
     function openStaffManager() {
-      const pwd = prompt("🔒 管理盤點人員需要輸入主管密碼 (1234)：");
+      const pwd = prompt("🔒 管理盤點人員需要輸入主管密碼");
       if (pwd === ADMIN_PASSWORD) {
         renderStaffTags();
         document.getElementById('staffModal').classList.remove('hidden');
