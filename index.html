@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>葉羽球館｜穿線登記與取拍簽收系統</title>
-  <link rel="apple-touch-icon" href="logo.png">
-  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="zh_logo.png">
+  <link rel="icon" type="image/png" href="zh_logo.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html { font-size: 20px; } /* 放大手機與 PAD 整體字體與按鈕比例 */
@@ -82,8 +82,8 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-bold text-emerald-800 mb-1">收拍人員</label>
-              <select id="receiver" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+              <label class="block text-sm font-bold text-emerald-800 mb-1">收拍人員 *</label>
+              <select id="receiver" required class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
                 <option value="">請選擇收拍人員</option>
               </select>
             </div>
@@ -105,13 +105,27 @@
 
     <!-- 2. 待取拍清單頁面 -->
     <section id="section-list" class="space-y-4 hidden">
-      <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-emerald-100">
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-white p-4 rounded-2xl shadow-sm border border-emerald-100">
         <div>
           <h2 class="font-bold text-emerald-900 text-lg">📋 穿線與取拍管理</h2>
-          <p class="text-xs text-slate-500">可進行顧客現場簽收，或更新穿線師與備註</p>
+          <p class="text-xs text-slate-500">依最新順序自動排列，可依狀態切換分頁處理</p>
         </div>
-        <button onclick="loadDataFromCloud(true)" class="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-200 transition">🔄 重新整理</button>
+        <button onclick="loadDataFromCloud(true)" class="bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-200 transition self-start sm:self-auto">🔄 重新整理</button>
       </div>
+
+      <!-- 狀態分類子分頁：待取拍 / 穿線完成 / 已取拍 -->
+      <div class="grid grid-cols-3 bg-white p-1.5 rounded-2xl shadow-sm border border-emerald-100 gap-1.5">
+        <button type="button" onclick="setStatusFilter('pending')" id="subtab-pending" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl bg-amber-500 text-slate-900 shadow-sm transition">
+          ⏳ 待取拍 <span id="count-pending" class="ml-1 bg-white/80 text-slate-900 px-1.5 py-0.5 rounded-full text-xs">0</span>
+        </button>
+        <button type="button" onclick="setStatusFilter('done')" id="subtab-done" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl text-emerald-800 hover:bg-emerald-50 transition">
+          🧵 穿線完成 <span id="count-done" class="ml-1 bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded-full text-xs">0</span>
+        </button>
+        <button type="button" onclick="setStatusFilter('picked')" id="subtab-picked" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl text-emerald-800 hover:bg-emerald-50 transition">
+          ✅ 已取拍 <span id="count-picked" class="ml-1 bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded-full text-xs">0</span>
+        </button>
+      </div>
+
       <div id="recordsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
 
@@ -153,6 +167,36 @@
       </div>
     </section>
   </main>
+
+  <!-- 穿線完成登記彈窗 Modal -->
+  <div id="stringDoneModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="font-bold text-lg text-emerald-900">🧵 登記穿線完成</h3>
+          <p id="stringDoneCustomerInfo" class="text-xs text-slate-500 font-medium"></p>
+        </div>
+        <button onclick="closeStringDoneModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">✕</button>
+      </div>
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="block font-bold text-emerald-800 mb-1">穿線師 *</label>
+          <select id="doneStringerSelect" class="w-full px-3 py-2 border rounded-xl bg-white outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="">請選擇穿線師</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-emerald-800 mb-1">穿線完成日 * <span class="text-xs text-emerald-600 font-normal">(預設今天，可直接確認)</span></label>
+          <input type="date" id="doneDateInput" class="w-full px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+          <p id="doneReceiveDateHint" class="text-[11px] text-slate-500 mt-1"></p>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeStringDoneModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl text-sm transition">取消</button>
+        <button id="confirmStringDoneBtn" onclick="confirmStringDone()" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-xl text-sm transition shadow">✅ 一鍵確認穿線完成</button>
+      </div>
+    </div>
+  </div>
 
   <!-- 簽名互動彈窗 Modal -->
   <div id="signModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
@@ -240,12 +284,59 @@
     let records = [];
     let receivers = [];
     let stringers = [];
-    let currentSigningIndex = null;
-    let currentEditingIndex = null;
+    let currentStatusFilter = "pending"; // pending: 待取拍, done: 穿線完成, picked: 已取拍
+    let currentSigningRecordId = null;
+    let currentEditingRecordId = null;
+    let currentStringDoneRecordId = null;
     let canvas, ctx, isDrawing = false;
 
+    function getLocalTodayStr() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function ensureRecordKeys(arr) {
+      return arr.map((r, i) => ({
+        ...r,
+        _uid: r._uid || `rec_${r.rowIndex || 'local'}_${r.id || i}_${Math.random().toString(36).slice(2, 7)}`,
+        _orderSeq: typeof r._orderSeq === 'number' ? r._orderSeq : (arr.length - i)
+      }));
+    }
+
+    function getRecordStatusCategory(r) {
+      const isSigned = Boolean(r.pickupSign && r.pickupSign.includes('已簽收'));
+      if (isSigned) return 'picked';
+      const isStringDone = Boolean(r.stringDoneDate && String(r.stringDoneDate).trim());
+      if (isStringDone) return 'done';
+      return 'pending';
+    }
+
+    function getLatestSortKey(r) {
+      const cat = getRecordStatusCategory(r);
+      const dateStr = (cat === 'done' && r.stringDoneDate)
+        ? String(r.stringDoneDate).substring(0, 10)
+        : (r.receiveDate ? String(r.receiveDate).substring(0, 10) : '0000-00-00');
+      const dateNum = Number(dateStr.replace(/-/g, '')) || 0;
+      const rowNum = Number(r.rowIndex) || 0;
+      const seqNum = Number(r._orderSeq) || 0;
+      return { dateNum, rowNum, seqNum };
+    }
+
+    function getSortedRecords() {
+      return [...records].sort((a, b) => {
+        const ka = getLatestSortKey(a);
+        const kb = getLatestSortKey(b);
+        if (kb.dateNum !== ka.dateNum) return kb.dateNum - ka.dateNum;
+        if (kb.rowNum !== ka.rowNum) return kb.rowNum - ka.rowNum;
+        return kb.seqNum - ka.seqNum;
+      });
+    }
+
     window.onload = function() {
-      document.getElementById('receiveDate').valueAsDate = new Date();
+      document.getElementById('receiveDate').value = getLocalTodayStr();
       const savedUrl = localStorage.getItem('ey_script_url');
       if (savedUrl) document.getElementById('scriptUrl').value = savedUrl;
 
@@ -260,16 +351,31 @@
 
       const savedRecords = localStorage.getItem('ey_records');
       if (savedRecords) {
-        records = JSON.parse(savedRecords);
+        records = ensureRecordKeys(JSON.parse(savedRecords));
       } else {
         records = [];
         saveLocal();
       }
 
       initCanvas();
-      renderRecords();
+      setStatusFilter(currentStatusFilter);
       if (savedUrl) loadDataFromCloud(false);
     };
+
+    function setStatusFilter(filterKey) {
+      currentStatusFilter = filterKey;
+      const keys = ['pending', 'done', 'picked'];
+      keys.forEach(k => {
+        const btn = document.getElementById('subtab-' + k);
+        if (!btn) return;
+        if (k === filterKey) {
+          btn.className = "py-2 px-2 text-xs sm:text-sm font-bold rounded-xl bg-amber-500 text-slate-900 shadow-sm transition";
+        } else {
+          btn.className = "py-2 px-2 text-xs sm:text-sm font-bold rounded-xl text-emerald-800 hover:bg-emerald-50 transition";
+        }
+      });
+      renderRecords();
+    }
 
     function switchTab(tab) {
       if (tab === 'settings') {
@@ -286,9 +392,11 @@
       });
       document.getElementById('section-' + tab).classList.remove('hidden');
       if(tab === 'register') document.getElementById('tab-register').classList.add('bg-emerald-700', 'text-white');
-      if(tab === 'list') document.getElementById('tab-list').classList.add('bg-amber-500', 'text-slate-900', 'shadow-sm');
+      if(tab === 'list') {
+        document.getElementById('tab-list').classList.add('bg-amber-500', 'text-slate-900', 'shadow-sm');
+        renderRecords();
+      }
       if(tab === 'settings') document.getElementById('tab-settings').classList.add('bg-emerald-900', 'text-white');
-      if(tab === 'list') renderRecords();
     }
 
     function updateStaffDropdowns() {
@@ -296,6 +404,7 @@
       const editRecSelect = document.getElementById('editReceiver');
       const strSelect = document.getElementById('stringer');
       const editStrSelect = document.getElementById('editStringer');
+      const doneStrSelect = document.getElementById('doneStringerSelect');
 
       const buildOptions = (arr, currentVal) => {
         let html = '<option value="">請選擇</option>';
@@ -309,6 +418,7 @@
       editRecSelect.innerHTML = buildOptions(receivers, editRecSelect.value);
       strSelect.innerHTML = buildOptions(stringers, strSelect.value);
       editStrSelect.innerHTML = buildOptions(stringers, editStrSelect.value);
+      doneStrSelect.innerHTML = buildOptions(stringers, doneStrSelect.value);
     }
 
     function renderStaffTags() {
@@ -402,7 +512,9 @@
         const res = await fetch(url);
         const json = await res.json();
         if (json.status === 'ok' && Array.isArray(json.data)) {
-          records = json.data.map(r => ({
+          const mapped = json.data.map((r, i) => ({
+            _uid: `cloud_${r.rowIndex || i}_${r.id || i}`,
+            _orderSeq: i + 1,
             rowIndex: r.rowIndex,
             id: r.id,
             customerName: r.customerName,
@@ -413,9 +525,11 @@
             receiver: r.receiver,
             stringer: r.stringer,
             receiveDate: r.receiveDate ? r.receiveDate.substring(0, 10) : '',
+            stringDoneDate: r.stringDoneDate ? String(r.stringDoneDate).substring(0, 10) : '',
             pickupSign: r.pickupSign || '',
             note: r.note || ''
-          })).reverse();
+          }));
+          records = ensureRecordKeys(mapped);
           saveLocal();
           renderRecords();
           if (showToast) alert('✅ 已從 Google 試算表同步最新資料！');
@@ -427,22 +541,33 @@
 
     async function submitForm(e) {
       e.preventDefault();
+      const receiverVal = document.getElementById('receiver').value.trim();
+      if (!receiverVal) {
+        alert('請先選擇收拍人員！');
+        document.getElementById('receiver').focus();
+        return;
+      }
+
       let sType = document.getElementById('stringType').value;
       if (sType === '其他') {
         const custom = document.getElementById('customString').value.trim();
         if (custom) sType = custom;
       }
 
+      const maxSeq = records.reduce((m, r) => Math.max(m, Number(r._orderSeq) || 0), 0);
       const newRecord = {
+        _uid: `local_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        _orderSeq: maxSeq + 1,
         id: records.length + 1,
         customerName: document.getElementById('customerName').value.trim(),
         contactInfo: document.getElementById('contactInfo').value.trim(),
         racketSpec: document.getElementById('racketSpec').value.trim(),
         stringType: sType,
         price: document.getElementById('price').value.trim(),
-        receiver: document.getElementById('receiver').value,
+        receiver: receiverVal,
         stringer: document.getElementById('stringer').value,
         receiveDate: document.getElementById('receiveDate').value,
+        stringDoneDate: '',
         pickupSign: '',
         note: document.getElementById('note').value.trim()
       };
@@ -469,22 +594,127 @@
       records.unshift(newRecord);
       saveLocal();
       document.getElementById('addForm').reset();
-      document.getElementById('receiveDate').valueAsDate = new Date();
+      document.getElementById('receiveDate').value = getLocalTodayStr();
       updatePrice();
       btn.innerText = "確認送出並同步雲端試算表";
       btn.disabled = false;
+      setStatusFilter('pending');
       switchTab('list');
+    }
+
+    function openStringDoneModal(uid) {
+      const idx = records.findIndex(r => r._uid === uid);
+      if (idx === -1) return;
+      currentStringDoneRecordId = uid;
+      const r = records[idx];
+      updateStaffDropdowns();
+      document.getElementById('stringDoneCustomerInfo').innerText = `顧客：${r.customerName} (${r.racketSpec})`;
+      document.getElementById('doneStringerSelect').value = r.stringer || '';
+      const todayStr = getLocalTodayStr();
+      const recDateStr = r.receiveDate ? r.receiveDate.substring(0, 10) : '';
+      const defaultDoneDate = (recDateStr && todayStr < recDateStr) ? recDateStr : todayStr;
+      document.getElementById('doneDateInput').value = defaultDoneDate;
+      document.getElementById('doneReceiveDateHint').innerText = recDateStr ? `收件日期：${recDateStr}（完成日需於收件日當日或之後）` : '';
+      document.getElementById('stringDoneModal').classList.remove('hidden');
+    }
+
+    function closeStringDoneModal() {
+      document.getElementById('stringDoneModal').classList.add('hidden');
+      currentStringDoneRecordId = null;
+    }
+
+    async function confirmStringDone() {
+      if (!currentStringDoneRecordId) return;
+      const idx = records.findIndex(r => r._uid === currentStringDoneRecordId);
+      if (idx === -1) return;
+
+      const selectedStringer = document.getElementById('doneStringerSelect').value.trim();
+      const doneDate = document.getElementById('doneDateInput').value.trim();
+      if (!selectedStringer) {
+        alert('請選擇穿線師！');
+        return;
+      }
+      if (!doneDate) {
+        alert('請選擇穿線完成日！');
+        return;
+      }
+
+      const oldRecord = records[idx];
+      const recDateStr = oldRecord.receiveDate ? oldRecord.receiveDate.substring(0, 10) : '';
+      if (recDateStr && doneDate < recDateStr) {
+        alert(`穿線完成日（${doneDate}）不可早於收件日期（${recDateStr}）！`);
+        return;
+      }
+
+      const updated = {
+        ...oldRecord,
+        stringer: selectedStringer,
+        stringDoneDate: doneDate
+      };
+
+      const btn = document.getElementById('confirmStringDoneBtn');
+      btn.innerText = "同步中...";
+      btn.disabled = true;
+
+      const url = localStorage.getItem('ey_script_url');
+      if (url) {
+        try {
+          await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: "edit",
+              rowIndex: oldRecord.rowIndex,
+              oldCustomerName: oldRecord.customerName,
+              ...updated
+            })
+          });
+        } catch (err) {
+          console.error('穿線完成同步失敗:', err);
+        }
+      }
+
+      records[idx] = updated;
+      saveLocal();
+      setStatusFilter('done');
+      btn.innerText = "✅ 一鍵確認穿線完成";
+      btn.disabled = false;
+      closeStringDoneModal();
     }
 
     function renderRecords() {
       const container = document.getElementById('recordsContainer');
-      if (records.length === 0) {
-        container.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400">目前沒有登記資料</div>';
+      const sortedAll = getSortedRecords();
+
+      const pendingList = sortedAll.filter(r => getRecordStatusCategory(r) === 'pending');
+      const doneList = sortedAll.filter(r => getRecordStatusCategory(r) === 'done');
+      const pickedList = sortedAll.filter(r => getRecordStatusCategory(r) === 'picked');
+
+      document.getElementById('count-pending').innerText = pendingList.length;
+      document.getElementById('count-done').innerText = doneList.length;
+      document.getElementById('count-picked').innerText = pickedList.length;
+
+      let activeList = pendingList;
+      let emptyText = '目前沒有待取拍資料';
+      if (currentStatusFilter === 'done') {
+        activeList = doneList;
+        emptyText = '目前沒有穿線完成資料';
+      } else if (currentStatusFilter === 'picked') {
+        activeList = pickedList;
+        emptyText = '目前沒有已取拍資料';
+      }
+
+      if (activeList.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">${emptyText}</div>`;
         return;
       }
 
-      container.innerHTML = records.map((r, idx) => {
-        const isSigned = r.pickupSign && r.pickupSign.includes('已簽收');
+      container.innerHTML = activeList.map((r, idx) => {
+        const cat = getRecordStatusCategory(r);
+        const isSigned = cat === 'picked';
+        const isStringDone = cat === 'done' || Boolean(r.stringDoneDate);
+        const recDateStr = r.receiveDate ? r.receiveDate.substring(0, 10) : '';
+        const doneDateStr = r.stringDoneDate ? r.stringDoneDate.substring(0, 10) : '';
         let signDisplay = '尚未簽名';
         let imageUrl = '';
 
@@ -515,16 +745,21 @@
           `;
         }
 
+        const statusBadges = isSigned
+          ? `<span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">✅ 已取拍</span>`
+          : `<div class="inline-flex items-center gap-1.5 flex-wrap">
+               <span class="text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">⏳ 待取拍</span>
+               ${isStringDone ? `<span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">🧵 穿線完成</span>` : ''}
+             </div>`;
+
         return `
           <div class="bg-white p-4 rounded-2xl shadow-sm border ${isSigned ? 'border-emerald-300 bg-emerald-50/20' : 'border-amber-200'} flex flex-col justify-between space-y-3">
             <div>
-              <div class="flex justify-between items-center">
-                <span class="text-xs font-bold px-2 py-0.5 rounded ${isSigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                  ${isSigned ? '✅ 已取拍簽收' : '⏳ 待取拍'}
-                </span>
-                <div class="flex items-center gap-1.5">
-                  <button onclick="openEditModal(${idx})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded font-medium transition">✏️ 修改</button>
-                  <button onclick="deleteRecord(${idx})" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-medium transition">🗑️ 刪除</button>
+              <div class="flex justify-between items-center gap-2">
+                ${statusBadges}
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button onclick="openEditModal('${r._uid}')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded font-medium transition">✏️ 修改</button>
+                  <button onclick="deleteRecord('${r._uid}')" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-medium transition">🗑️ 刪除</button>
                   <span class="text-xs text-slate-400 font-mono ml-1">#${r.id || (idx+1)}</span>
                 </div>
               </div>
@@ -532,18 +767,20 @@
                 <h3 class="font-bold text-lg text-emerald-900">${r.customerName} ${r.contactInfo ? `<span class="text-xs font-normal text-slate-500">(${r.contactInfo})</span>` : ''}</h3>
                 <p class="text-sm font-medium text-slate-700">🏸 ${r.racketSpec}</p>
                 <p class="text-xs text-slate-500 mt-1">線材：<span class="font-bold text-emerald-800">${r.stringType}</span> | 費用：<span class="font-bold text-red-600">${r.price}</span></p>
-                <p class="text-xs text-slate-500 mt-0.5">收拍：${r.receiver || '未填'} | 穿線師：${r.stringer || '未填'} | 收件：${r.receiveDate ? r.receiveDate.substring(0, 10) : ''}</p>
+                <p class="text-xs text-slate-500 mt-0.5">收拍：${r.receiver || '未填'} | 穿線師：${r.stringer || '未填'}</p>
+                <p class="text-xs text-slate-500 mt-0.5">收件：${recDateStr}${doneDateStr ? ` | <span class="font-bold text-emerald-800">完成日：${doneDateStr}</span>` : ''}</p>
                 ${r.note ? `<p class="text-xs bg-amber-50 text-amber-900 p-1.5 rounded mt-2">備註：${r.note}</p>` : ''}
               </div>
             </div>
-            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
               <div class="text-xs text-slate-600">
                 ${signDisplay}
               </div>
-              <div>
+              <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                ${!isSigned ? `<button onclick="openStringDoneModal('${r._uid}')" class="text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-900 px-2.5 py-1.5 rounded-lg font-bold transition">🧵 穿線完成</button>` : ''}
                 ${isSigned 
-                  ? `<button onclick="openSignModal(${idx})" class="text-xs bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-3 py-1.5 rounded-lg font-medium transition">重簽</button>`
-                  : `<button onclick="openSignModal(${idx})" class="text-xs bg-amber-500 hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-lg font-bold transition shadow-sm">✍️ 顧客現場簽收</button>`
+                  ? `<button onclick="openSignModal('${r._uid}')" class="text-xs bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-3 py-1.5 rounded-lg font-medium transition">重簽</button>`
+                  : `<button onclick="openSignModal('${r._uid}')" class="text-xs bg-amber-500 hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-lg font-bold transition shadow-sm">✍️ 顧客現場簽收</button>`
                 }
               </div>
             </div>
@@ -582,8 +819,10 @@
       document.getElementById('unlockBtn').classList.add('hidden');
     }
 
-    function openEditModal(idx) {
-      currentEditingIndex = idx;
+    function openEditModal(uid) {
+      const idx = records.findIndex(r => r._uid === uid);
+      if (idx === -1) return;
+      currentEditingRecordId = uid;
       const r = records[idx];
       document.getElementById('editCustomerName').value = r.customerName || '';
       document.getElementById('editContactInfo').value = r.contactInfo || '';
@@ -604,12 +843,14 @@
 
     function closeEditModal() {
       document.getElementById('editModal').classList.add('hidden');
-      currentEditingIndex = null;
+      currentEditingRecordId = null;
     }
 
     async function saveEditRecord() {
-      if (currentEditingIndex === null) return;
-      const oldRecord = records[currentEditingIndex];
+      if (!currentEditingRecordId) return;
+      const idx = records.findIndex(r => r._uid === currentEditingRecordId);
+      if (idx === -1) return;
+      const oldRecord = records[idx];
       const updated = {
         ...oldRecord,
         customerName: document.getElementById('editCustomerName').value.trim(),
@@ -645,7 +886,7 @@
         }
       }
 
-      records[currentEditingIndex] = updated;
+      records[idx] = updated;
       saveLocal();
       renderRecords();
       btn.innerText = "儲存修改並同步";
@@ -653,7 +894,9 @@
       closeEditModal();
     }
 
-    async function deleteRecord(idx) {
+    async function deleteRecord(uid) {
+      const idx = records.findIndex(r => r._uid === uid);
+      if (idx === -1) return;
       const target = records[idx];
       const pwd = prompt(`刪除紀錄需要主管權限。\n請輸入密碼以刪除「${target.customerName}」的資料：`);
       if (pwd !== ADMIN_PASSWORD) {
@@ -696,7 +939,6 @@
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        // 修正跑位：換算畫布實際顯示大小與內部像素的比例
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
 
@@ -723,8 +965,10 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    function openSignModal(idx) {
-      currentSigningIndex = idx;
+    function openSignModal(uid) {
+      const idx = records.findIndex(r => r._uid === uid);
+      if (idx === -1) return;
+      currentSigningRecordId = uid;
       document.getElementById('signCustomerName').innerText = `顧客：${records[idx].customerName} (${records[idx].racketSpec})`;
       document.getElementById('signModal').classList.remove('hidden');
       clearSignature();
@@ -732,15 +976,18 @@
 
     function closeSignModal() {
       document.getElementById('signModal').classList.add('hidden');
-      currentSigningIndex = null;
+      currentSigningRecordId = null;
     }
 
     async function confirmSignature() {
-      if (currentSigningIndex === null) return;
+      if (!currentSigningRecordId) return;
+      const idx = records.findIndex(r => r._uid === currentSigningRecordId);
+      if (idx === -1) return;
+
       const dataURL = canvas.toDataURL('image/png');
       const nowStr = new Date().toLocaleString('zh-TW', { hour12: false });
       
-      const record = records[currentSigningIndex];
+      const record = records[idx];
       const url = localStorage.getItem('ey_script_url');
       
       if (!url) {
@@ -767,9 +1014,9 @@
         
         const result = await response.json();
         if (result.status === 'ok') {
-          records[currentSigningIndex].pickupSign = `${nowStr} 已簽收\n${result.fileUrl}`;
+          records[idx].pickupSign = `${nowStr} 已簽收\n${result.fileUrl}`;
           saveLocal();
-          renderRecords();
+          setStatusFilter('picked');
           closeSignModal();
           alert('✅ 簽名已成功上傳並同步至 Google 試算表與雲端硬碟！');
         } else {
@@ -784,9 +1031,9 @@
     }
 
     function exportCSV() {
-      let csv = '\ufeff序號,顧客姓名,聯絡資訊,球拍與磅數,線材,費用,收拍人員,穿線師,收件日期,取拍簽收,備註\n';
-      records.forEach(r => {
-        csv += `"${r.id}","${r.customerName}","${r.contactInfo || ''}","${r.racketSpec}","${r.stringType}","${r.price}","${r.receiver}","${r.stringer}","${r.receiveDate}","${r.pickupSign}","${r.note}"\n`;
+      let csv = '\ufeff序號,顧客姓名,聯絡資訊,球拍與磅數,線材,費用,收拍人員,穿線師,收件日期,穿線完成日,取拍簽收,備註\n';
+      getSortedRecords().forEach(r => {
+        csv += `"${r.id}","${r.customerName}","${r.contactInfo || ''}","${r.racketSpec}","${r.stringType}","${r.price}","${r.receiver}","${r.stringer}","${r.receiveDate}","${r.stringDoneDate || ''}","${r.pickupSign}","${r.note}"\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
