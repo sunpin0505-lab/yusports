@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>葉羽球館｜檢查系統</title>
+  <title>葉羽球館｜巡查系統</title>
   <!-- 🍎 平板桌面捷徑與分頁圖示 -->
   <link rel="apple-touch-icon" href="logo.png">
   <link rel="icon" type="image/png" href="logo.png">
@@ -46,13 +46,12 @@
     <!-- 交接人員與日期區塊 -->
     <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <label class="block text-sm font-bold text-emerald-800 mb-1">交接人員 *</label>
+        <div class="flex justify-between items-center mb-1">
+          <label class="block text-sm font-bold text-emerald-800">交接人員 *</label>
+          <button type="button" onclick="openStaffManager()" class="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-lg font-bold border border-emerald-200 transition">⚙️ 管理人員</button>
+        </div>
         <select id="staffName" class="w-full px-3 py-2.5 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-medium text-base">
           <option value="">請選擇交接人員</option>
-          <option value="心怡">心怡</option>
-          <option value="小明">小明</option>
-          <option value="憲">憲</option>
-          <option value="銘">銘</option>
         </select>
       </div>
       <div>
@@ -100,6 +99,24 @@
     </div>
   </main>
 
+  <!-- 巡查人員管理彈跳視窗 -->
+  <div id="staffModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-lg text-emerald-900">👥 巡查交接人員管理</h3>
+        <button type="button" onclick="closeStaffManager()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">✕</button>
+      </div>
+      <div class="space-y-2">
+        <div class="flex gap-2">
+          <input type="text" id="newStaffInput" placeholder="輸入新交接人員姓名" class="flex-1 px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+          <button type="button" onclick="addNewStaff()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-sm font-bold transition">新增</button>
+        </div>
+      </div>
+      <div id="staffTagsContainer" class="flex gap-2 flex-wrap max-h-48 overflow-y-auto p-1 bg-emerald-50/50 rounded-xl border border-emerald-100"></div>
+      <button type="button" onclick="closeStaffManager()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2.5 rounded-xl transition text-sm">關閉視窗</button>
+    </div>
+  </div>
+
   <script>
     const ADMIN_PASSWORD = "1234";
 
@@ -117,15 +134,81 @@
     ];
 
     let totalItemsCount = 0;
+    let staffList = [];
 
     window.onload = function() {
       document.getElementById('checkDate').valueAsDate = new Date();
       const savedUrl = localStorage.getItem('ey_closing_script_url');
       if (savedUrl) document.getElementById('scriptUrl').value = savedUrl;
 
+      loadStaffList();
       renderChecklist();
       updateProgress();
     };
+
+    function loadStaffList() {
+      const savedReceivers = localStorage.getItem('ey_receivers');
+      staffList = savedReceivers ? JSON.parse(savedReceivers) : ["心怡", "小明", "憲", "銘"];
+      renderStaffDropdown();
+    }
+
+    function renderStaffDropdown() {
+      const staffSelect = document.getElementById('staffName');
+      const currentVal = staffSelect.value;
+      let html = '<option value="">請選擇交接人員</option>';
+      staffList.forEach(name => {
+        html += `<option value="${name}" ${name === currentVal ? 'selected' : ''}>${name}</option>`;
+      });
+      staffSelect.innerHTML = html;
+    }
+
+    function openStaffManager() {
+      const pwd = prompt("🔒 管理巡查人員需要輸入主管密碼");
+      if (pwd === ADMIN_PASSWORD) {
+        renderStaffTags();
+        document.getElementById('staffModal').classList.remove('hidden');
+      } else if (pwd !== null) {
+        alert("❌ 密碼錯誤！");
+      }
+    }
+
+    function closeStaffManager() {
+      document.getElementById('staffModal').classList.add('hidden');
+    }
+
+    function renderStaffTags() {
+      const container = document.getElementById('staffTagsContainer');
+      container.innerHTML = staffList.map((name, idx) => `
+        <span class="inline-flex items-center gap-1.5 bg-white text-emerald-900 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
+          👤 ${name}
+          <button type="button" onclick="removeStaff(${idx})" class="text-red-500 hover:text-red-700 font-bold ml-1">✕</button>
+        </span>
+      `).join('');
+    }
+
+    function addNewStaff() {
+      const input = document.getElementById('newStaffInput');
+      const val = input.value.trim();
+      if (!val) return alert("請輸入人員姓名！");
+      if (staffList.includes(val)) return alert("此人員已存在！");
+
+      staffList.push(val);
+      localStorage.setItem('ey_receivers', JSON.stringify(staffList));
+      input.value = "";
+      renderStaffTags();
+      renderStaffDropdown();
+    }
+
+    function removeStaff(idx) {
+      if (staffList.length <= 1) {
+        alert("至少需保留一位交接人員！");
+        return;
+      }
+      staffList.splice(idx, 1);
+      localStorage.setItem('ey_receivers', JSON.stringify(staffList));
+      renderStaffTags();
+      renderStaffDropdown();
+    }
 
     function toggleProtectedSettings() {
       const panel = document.getElementById('settingsPanel');
