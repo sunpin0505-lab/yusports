@@ -384,7 +384,7 @@
     }
 
     function openStaffManager() {
-      const pwd = prompt("🔒 管理登記人員需要輸入主管密碼 (1234)：");
+      const pwd = prompt("🔒 管理登記人員需要輸入主管密碼 ");
       if (pwd === ADMIN_PASSWORD) {
         renderStaffTags();
         document.getElementById('staffModal').classList.remove('hidden');
@@ -789,7 +789,7 @@
     }
 
     function deleteAttendanceLog(index) {
-      const pwd = prompt(`🔒 移除此筆出勤紀錄需要輸入主管密碼 (1234)：`);
+      const pwd = prompt(`🔒 移除此筆出勤紀錄需要輸入主管密碼`);
       if (pwd === ADMIN_PASSWORD) {
         const l = attendanceLogs[index];
         const target = students.find(s => s.name === l.name);
@@ -890,7 +890,7 @@
     }
 
     function deleteSchedule(index) {
-      const pwd = prompt(`🔒 移除此筆預約行程需要輸入主管密碼 (1234)：`);
+      const pwd = prompt(`🔒 移除此筆預約行程需要輸入主管密碼 );
       if (pwd === ADMIN_PASSWORD) {
         const sc = schedules[index];
         schedules.splice(index, 1);
@@ -952,7 +952,7 @@
     }
 
     function deleteTransaction(index) {
-      const pwd = prompt(`🔒 移除此筆交易紀錄需要輸入主管密碼 (1234)：`);
+      const pwd = prompt(`🔒 移除此筆交易紀錄需要輸入主管密碼 `);
       if (pwd === ADMIN_PASSWORD) {
         const tr = transactions[index];
         transactions.splice(index, 1);
@@ -1076,7 +1076,7 @@
     }
 
     function deleteStudent(name) {
-      const pwd = prompt(`🔒 移除學員【${name}】需要輸入主管密碼 (1234)：`);
+      const pwd = prompt(`🔒 移除學員【${name}】需要輸入主管密碼`);
       if (pwd === ADMIN_PASSWORD) {
         students = students.filter(s => s.name !== name);
         syncToSheet({ type: "deleteStudent", name });
