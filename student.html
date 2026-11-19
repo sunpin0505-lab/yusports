@@ -41,6 +41,25 @@
           <span class="font-bold text-sm text-emerald-900">👥 班別與學員總覽 (點擊姓名看詳情)</span>
           <button onclick="openAddStudentModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-3.5 py-2 rounded-xl font-bold shadow text-xs">＋ 新增學員</button>
         </div>
+
+        <!-- 快速搜尋學員 -->
+        <div class="relative flex items-center gap-2">
+          <input
+            type="text"
+            id="studentSearchInput"
+            oninput="renderOverview()"
+            placeholder="🔍 快速搜尋學員姓名或班別..."
+            class="w-full px-3.5 py-2 border-2 border-emerald-200 focus:border-emerald-500 rounded-xl bg-emerald-50/40 text-sm outline-none"
+          >
+          <button
+            type="button"
+            onclick="clearStudentSearch()"
+            class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl font-bold shrink-0"
+          >
+            清除
+          </button>
+        </div>
+
         <div id="groupTabsContainer" class="flex gap-1.5 overflow-x-auto pt-1 pb-1"></div>
       </div>
       <div id="studentList" class="space-y-3"></div>
@@ -49,7 +68,7 @@
     <!-- 頁籤二：出勤流水帳 -->
     <div id="section-attendance" class="hidden space-y-3">
       <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 space-y-3">
-        <h2 class="font-bold text-sm text-emerald-900 border-b pb-2">⚡ 快速點名扣堂 (自動連動預約改為已到課)</h2>
+        <h2 class="font-bold text-sm text-emerald-900 border-b pb-2">⚡ 快速點名扣堂 (自動連動預約狀態轉換)</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><label class="block text-xs font-bold text-emerald-800 mb-1">上課學員 *</label><select id="attStudent" class="w-full px-3 py-2.5 border rounded-xl bg-white text-base outline-none"><option value="">請選擇學員</option></select></div>
           <div><label class="block text-xs font-bold text-emerald-800 mb-1">實際上課日</label><input type="date" id="attDate" class="w-full px-3 py-2 border rounded-xl text-base outline-none"></div>
@@ -66,12 +85,37 @@
           </div>
           <div><label class="block text-xs font-bold text-emerald-800 mb-1">備註說明</label><input type="text" id="attNote" placeholder="例如：週六正常上課" class="w-full px-3 py-2 border rounded-xl text-base outline-none"></div>
         </div>
-        <button onclick="submitAttendance()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl shadow">✅ 確認送出點名並連動更新預約</button>
+        <button onclick="submitAttendance()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl shadow">✅ 確認送出點名並連動更新預約與試算表</button>
       </div>
 
+      <!-- 當月出勤月曆與流水帳 -->
       <div class="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 space-y-3">
-        <div class="flex justify-between items-center border-b pb-2">
-          <h3 class="font-bold text-sm text-emerald-900">📜 出勤流水帳紀錄</h3>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2">
+          <h3 class="font-bold text-sm text-emerald-900">🗓️ 當月出勤月曆與流水帳</h3>
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="text-xs font-bold text-slate-600">選擇年月：</label>
+            <input type="month" id="attFilterMonth" onchange="onAttMonthChange()" class="px-3 py-1.5 border-2 border-emerald-300 rounded-xl bg-emerald-50/40 text-xs font-bold text-emerald-900 outline-none">
+            <button type="button" onclick="resetAttMonthFilter()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-xl font-bold">顯示全部</button>
+          </div>
+        </div>
+
+        <!-- 月曆網格 -->
+        <div id="attendanceCalendarSection" class="space-y-2">
+          <div class="flex items-center justify-between text-xs text-slate-600">
+            <span id="attCalendarTitle" class="font-bold text-emerald-900">當月出勤日曆</span>
+            <div class="flex items-center gap-2">
+              <span id="attSelectedDateBadge" class="hidden bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg font-bold"></span>
+              <button type="button" id="attClearDateBtn" onclick="clearAttSelectedDate()" class="hidden text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg font-bold">看整月</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-emerald-800 bg-emerald-50/70 py-1.5 rounded-xl border border-emerald-100">
+            <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+          </div>
+          <div id="attendanceCalendarGrid" class="grid grid-cols-7 gap-1 text-xs"></div>
+        </div>
+
+        <div class="flex justify-between items-center pt-2 border-t">
+          <h4 class="font-bold text-xs text-emerald-900">📜 出勤流水帳明細</h4>
           <select id="attFilterStudent" onchange="renderAttendanceLogs()" class="px-2 py-1 border rounded-xl text-xs font-bold bg-emerald-50"><option value="全部">全部學員</option></select>
         </div>
         <div id="attendanceLogList" class="space-y-2 text-xs"></div>
@@ -92,7 +136,7 @@
           <div id="timeCheckboxesContainer" class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200 max-h-40 overflow-y-auto"></div>
         </div>
 
-        <div><label class="block text-xs font-bold text-emerald-800 mb-1">預約狀態</label><select id="schStatus" class="w-full px-3 py-2.5 border rounded-xl bg-white font-bold"><option value="已預約">🟡 已預約</option><option value="已到課">🟢 已到課</option><option value="請假改期">🔴 請假改期</option></select></div>
+        <div><label class="block text-xs font-bold text-emerald-800 mb-1">預約狀態</label><select id="schStatus" class="w-full px-3 py-2.5 border rounded-xl bg-white font-bold"><option value="已預約">🟡 已預約</option><option value="已到課">🟢 已到課</option><option value="請假改期">🔴 請假改期</option><option value="未出席">⚫ 未出席</option></select></div>
         <button onclick="submitSchedule()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-3 rounded-xl shadow">📌 新增所選時段預約行程並同步試算表</button>
       </div>
 
@@ -132,7 +176,7 @@
       </div>
     </div>
 
-    <!-- 設定（切換頁面後會自動重新上鎖） -->
+    <!-- 設定 -->
     <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 text-xs">
       <div class="flex justify-between items-center">
         <span class="font-bold text-emerald-900">🔒 試算表同步設定（主管專用）</span>
@@ -179,6 +223,7 @@
     </div>
   </div>
 
+  <!-- 編輯出勤視窗 -->
   <div id="editAttendanceModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-3xl p-6 space-y-3">
       <h3 class="font-bold text-lg text-emerald-900">✏️ 編輯出勤狀態</h3>
@@ -196,7 +241,7 @@
       <div><label class="block text-xs font-bold text-emerald-800 mb-1">備註說明</label><input type="text" id="editAttNote" class="w-full px-3 py-2 border rounded-xl"></div>
       <div class="flex gap-2 pt-2">
         <button onclick="closeEditAttendanceModal()" class="flex-1 bg-slate-200 py-3 rounded-xl font-bold">取消</button>
-        <button onclick="saveEditedAttendance()" class="flex-1 bg-emerald-700 text-white py-3 rounded-xl font-bold">儲存修改並同步</button>
+        <button onclick="saveEditedAttendance()" class="flex-1 bg-emerald-700 text-white py-3 rounded-xl font-bold">儲存修改並連動同步</button>
       </div>
     </div>
   </div>
@@ -209,9 +254,7 @@
       <div>
         <label class="block text-xs font-bold text-emerald-800 mb-1">預約狀態</label>
         <select id="editSchStatus" class="w-full px-3 py-2.5 border rounded-xl bg-white font-bold">
-          <option value="已預約">🟡 已預約</option>
-          <option value="已到課">🟢 已到課</option>
-          <option value="請假改期">🔴 請假改期</option>
+          <option value="已預約">🟡 已預約</option><option value="已到課">🟢 已到課</option><option value="請假改期">🔴 請假改期</option><option value="未出席">⚫ 未出席</option>
         </select>
       </div>
       <div class="flex gap-2 pt-2">
@@ -221,16 +264,29 @@
     </div>
   </div>
 
+  <!-- 新增學員彈跳視窗 -->
   <div id="addStudentModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-3xl p-6 space-y-3">
       <h3 class="font-bold text-lg text-emerald-900">➕ 新增學員與初始繳費</h3>
-      <input type="text" id="newStudentName" placeholder="學員姓名 *" class="w-full px-3 py-2 border rounded-xl">
-      <input type="text" id="newStudentGroup" value="週六兒童班" placeholder="班別" class="w-full px-3 py-2 border rounded-xl">
+      <div><label class="block text-xs font-bold text-emerald-800 mb-1">學員姓名 *</label><input type="text" id="newStudentName" placeholder="請輸入學員姓名" class="w-full px-3 py-2 border rounded-xl"></div>
+      <div><label class="block text-xs font-bold text-emerald-800 mb-1">班別</label><input type="text" id="newStudentGroup" value="週六兒童班" class="w-full px-3 py-2 border rounded-xl"></div>
       <div class="grid grid-cols-2 gap-2">
-        <input type="number" id="newStudentTotal" value="15" placeholder="總堂數" class="w-full px-3 py-2 border rounded-xl">
-        <input type="number" id="newStudentAmount" value="3000" placeholder="繳費金額" class="w-full px-3 py-2 border rounded-xl">
+        <div><label class="block text-xs font-bold text-emerald-800 mb-1">購買總堂數</label><input type="number" id="newStudentTotal" value="15" class="w-full px-3 py-2 border rounded-xl"></div>
+        <div><label class="block text-xs font-bold text-emerald-800 mb-1">初始繳費金額</label><input type="number" id="newStudentAmount" value="3000" class="w-full px-3 py-2 border rounded-xl"></div>
       </div>
-      <select id="newStudentPayType" class="w-full px-3 py-2 border rounded-xl bg-white font-bold text-emerald-800"><option value="現金">💵 現金</option><option value="信用卡">💳 信用卡</option><option value="TWQR">📱 TWQR</option></select>
+      <div>
+        <label class="block text-xs font-bold text-emerald-800 mb-1">付款方式</label>
+        <select id="newStudentPayType" class="w-full px-3 py-2 border rounded-xl bg-white font-bold text-emerald-800">
+          <option value="現金">💵 現金</option><option value="信用卡">💳 信用卡</option><option value="TWQR">📱 TWQR</option>
+        </select>
+      </div>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <label class="block text-xs font-bold text-emerald-800">登記人員 *</label>
+          <button type="button" onclick="openStaffManager()" class="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg font-bold border border-emerald-200">⚙️ 管理人員</button>
+        </div>
+        <select id="newStudentRegistrar" class="w-full px-3 py-2 border rounded-xl bg-white font-bold text-emerald-800"><option value="">請選擇登記人員</option></select>
+      </div>
       <div class="flex gap-2 pt-2">
         <button onclick="closeAddStudentModal()" class="flex-1 bg-slate-200 py-3 rounded-xl font-bold">取消</button>
         <button onclick="submitNewStudent()" class="flex-1 bg-emerald-700 text-white py-3 rounded-xl font-bold">確認新增並記錄</button>
@@ -238,15 +294,38 @@
     </div>
   </div>
 
+  <!-- 登記人員管理彈跳視窗 -->
+  <div id="staffModal" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-lg text-emerald-900">👥 登記人員名單管理</h3>
+        <button type="button" onclick="closeStaffManager()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">✕</button>
+      </div>
+      <div class="flex gap-2">
+        <input type="text" id="newStaffInput" placeholder="輸入新登記人員姓名" class="flex-1 px-3 py-2 border rounded-xl text-sm outline-none">
+        <button type="button" onclick="addNewStaff()" class="bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-bold">新增</button>
+      </div>
+      <div id="staffTagsContainer" class="flex gap-2 flex-wrap max-h-48 overflow-y-auto p-2 bg-emerald-50/50 rounded-xl border border-emerald-100"></div>
+      <button type="button" onclick="closeStaffManager()" class="w-full bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-sm">關閉視窗</button>
+    </div>
+  </div>
+
+  <!-- 課程加購彈跳視窗 -->
   <div id="rechargeModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white w-full max-w-md rounded-3xl p-6 space-y-3">
       <h3 class="font-bold text-lg text-emerald-900">💳 課程加購與繳費紀錄</h3>
-      <input type="text" id="rechargeStudentName" readonly class="w-full px-3 py-2 border rounded-xl bg-slate-100 font-bold">
+      <div><label class="block text-xs font-bold text-emerald-800 mb-1">學員姓名</label><input type="text" id="rechargeStudentName" readonly class="w-full px-3 py-2 border rounded-xl bg-slate-100 font-bold"></div>
       <div class="grid grid-cols-2 gap-2">
-        <input type="number" id="rechargeCount" value="15" class="w-full px-3 py-2 border rounded-xl">
-        <input type="number" id="rechargeAmount" value="3000" class="w-full px-3 py-2 border rounded-xl">
+        <div><label class="block text-xs font-bold text-emerald-800 mb-1">加購堂數</label><input type="number" id="rechargeCount" value="15" class="w-full px-3 py-2 border rounded-xl"></div>
+        <div><label class="block text-xs font-bold text-emerald-800 mb-1">繳費金額</label><input type="number" id="rechargeAmount" value="3000" class="w-full px-3 py-2 border rounded-xl"></div>
       </div>
-      <select id="rechargePayType" class="w-full px-3 py-2 border rounded-xl bg-white font-bold text-emerald-800"><option value="現金">💵 現金</option><option value="信用卡">💳 信用卡</option><option value="TWQR">📱 TWQR</option></select>
+      <div>
+        <label class="block text-xs font-bold text-emerald-800 mb-1">付款方式</label>
+        <select id="rechargePayType" class="w-full px-3 py-2 border rounded-xl bg-white font-bold text-emerald-800">
+          <option value="現金">💵 現金</option><option value="信用卡">💳 信用卡</option><option value="TWQR">📱 TWQR</option>
+        </select>
+      </div>
+      <div><label class="block text-xs font-bold text-emerald-800 mb-1">登記人員 *</label><select id="rechargeRegistrar" class="w-full px-3 py-2 border rounded-xl bg-white font-bold text-emerald-800"><option value="">請選擇登記人員</option></select></div>
       <div class="flex gap-2 pt-2">
         <button onclick="closeRechargeModal()" class="flex-1 bg-slate-200 py-3 rounded-xl font-bold">取消</button>
         <button onclick="submitRecharge()" class="flex-1 bg-amber-500 text-slate-900 py-3 rounded-xl font-bold">確認加購並記錄</button>
@@ -260,7 +339,9 @@
     let attendanceLogs = [];
     let schedules = [];
     let transactions = [];
+    let staffList = [];
     let currentGroupFilter = "全部";
+    let selectedAttDate = "";
     let currentRechargeStudent = "";
     let isTransUnlocked = false;
 
@@ -268,8 +349,10 @@
       const todayStr = new Date().toISOString().split('T')[0];
       document.getElementById('attDate').value = todayStr;
       document.getElementById('schDate').value = todayStr;
+      document.getElementById('attFilterMonth').value = todayStr.substring(0, 7);
       document.getElementById('schFilterMonth').value = todayStr.substring(0, 7);
 
+      loadStaffList();
       renderTimeCheckboxes();
       
       const savedUrl = localStorage.getItem('ey_student_script_url');
@@ -279,6 +362,65 @@
       renderAll();
       if (savedUrl) loadDataFromSheet(false);
     };
+
+    function loadStaffList() {
+      const savedReceivers = localStorage.getItem('ey_receivers');
+      staffList = savedReceivers ? JSON.parse(savedReceivers) : ["心怡", "小明", "憲", "銘"];
+      renderRegistrarDropdowns();
+    }
+
+    function renderRegistrarDropdowns() {
+      const regSelect1 = document.getElementById('newStudentRegistrar');
+      const val1 = regSelect1.value;
+      let html1 = '<option value="">請選擇登記人員</option>';
+      staffList.forEach(name => { html1 += `<option value="${name}" ${name === val1 ? 'selected' : ''}>${name}</option>`; });
+      regSelect1.innerHTML = html1;
+
+      const regSelect2 = document.getElementById('rechargeRegistrar');
+      const val2 = regSelect2.value;
+      let html2 = '<option value="">請選擇登記人員</option>';
+      staffList.forEach(name => { html2 += `<option value="${name}" ${name === val2 ? 'selected' : ''}>${name}</option>`; });
+      regSelect2.innerHTML = html2;
+    }
+
+    function openStaffManager() {
+      const pwd = prompt("🔒 管理登記人員需要輸入主管密碼 (1234)：");
+      if (pwd === ADMIN_PASSWORD) {
+        renderStaffTags();
+        document.getElementById('staffModal').classList.remove('hidden');
+      } else if (pwd !== null) { alert("❌ 密碼錯誤！"); }
+    }
+    function closeStaffManager() { document.getElementById('staffModal').classList.add('hidden'); }
+
+    function renderStaffTags() {
+      const container = document.getElementById('staffTagsContainer');
+      container.innerHTML = staffList.map((name, idx) => `
+        <span class="inline-flex items-center gap-1.5 bg-white text-emerald-900 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
+          👤 ${name}
+          <button type="button" onclick="removeStaff(${idx})" class="text-red-500 hover:text-red-700 font-bold ml-1">✕</button>
+        </span>
+      `).join('');
+    }
+
+    function addNewStaff() {
+      const input = document.getElementById('newStaffInput');
+      const val = input.value.trim();
+      if (!val) return alert("請輸入人員姓名！");
+      if (staffList.includes(val)) return alert("此人員已存在！");
+      staffList.push(val);
+      localStorage.setItem('ey_receivers', JSON.stringify(staffList));
+      input.value = "";
+      renderStaffTags();
+      renderRegistrarDropdowns();
+    }
+
+    function removeStaff(idx) {
+      if (staffList.length <= 1) return alert("至少需保留一位登記人員！");
+      staffList.splice(idx, 1);
+      localStorage.setItem('ey_receivers', JSON.stringify(staffList));
+      renderStaffTags();
+      renderRegistrarDropdowns();
+    }
 
     function renderTimeCheckboxes() {
       const container = document.getElementById('timeCheckboxesContainer');
@@ -298,14 +440,10 @@
     }
 
     function loadLocalData() {
-      const s = localStorage.getItem('ey_students_v10');
-      if (s) students = JSON.parse(s);
-      const a = localStorage.getItem('ey_attendance_v10');
-      if (a) attendanceLogs = JSON.parse(a);
-      const sc = localStorage.getItem('ey_schedules_v10');
-      if (sc) schedules = JSON.parse(sc);
-      const tr = localStorage.getItem('ey_transactions_v10');
-      if (tr) transactions = JSON.parse(tr);
+      const s = localStorage.getItem('ey_students_v10'); if (s) students = JSON.parse(s);
+      const a = localStorage.getItem('ey_attendance_v10'); if (a) attendanceLogs = JSON.parse(a);
+      const sc = localStorage.getItem('ey_schedules_v10'); if (sc) schedules = JSON.parse(sc);
+      const tr = localStorage.getItem('ey_transactions_v10'); if (tr) transactions = JSON.parse(tr);
     }
 
     function saveLocalData() {
@@ -325,30 +463,25 @@
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify(payload)
         });
-      } catch (err) {
-        console.error("同步失敗:", err);
-      }
+      } catch (err) { console.error("同步失敗:", err); }
     }
 
     async function loadDataFromSheet(showToast = false) {
       const url = localStorage.getItem('ey_student_script_url');
-      if (!url) {
-        if (showToast) alert("⚠️ 尚未設定 Apps Script 網址！");
-        return;
-      }
+      if (!url) { if (showToast) alert("⚠️ 尚未設定 Apps Script 網址！"); return; }
       try {
         const res = await fetch(url + "?action=students");
         const json = await res.json();
         if (json.status === "ok") {
           if (json.students) students = json.students;
+          if (json.attendanceLogs) attendanceLogs = json.attendanceLogs;
           if (json.schedules) schedules = json.schedules;
+          if (json.transactions) transactions = json.transactions;
           saveLocalData();
           renderAll();
-          if (showToast) alert("✅ 已成功從試算表同步所有資料！");
+          if (showToast) alert("✅ 已成功從試算表同步所有資料（含出勤紀錄）！");
         }
-      } catch (err) {
-        if (showToast) alert("⚠️ 同步失敗，請確認 Apps Script 部署設定。");
-      }
+      } catch (err) { if (showToast) alert("⚠️ 同步失敗，請確認 Apps Script 部署設定。"); }
     }
 
     function switchTab(tab) {
@@ -360,9 +493,7 @@
         document.getElementById('transStatusBadge').className = "text-[11px] text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg font-bold";
         document.getElementById('transPasswordInput').value = "";
       }
-
       document.getElementById('settingsPanel').classList.add('hidden');
-
       ['overview', 'attendance', 'schedule', 'transactions'].forEach(t => {
         document.getElementById(`section-${t}`).classList.add('hidden');
         document.getElementById(`tab-${t}`).classList.remove('bg-emerald-700', 'text-white');
@@ -370,7 +501,6 @@
       });
       document.getElementById(`section-${tab}`).classList.remove('hidden');
       document.getElementById(`tab-${tab}`).classList.add('bg-emerald-700', 'text-white');
-      
       if (tab === 'transactions' && isTransUnlocked) renderTransactions();
     }
 
@@ -378,6 +508,7 @@
       renderStudentDropdowns();
       renderGroupTabs();
       renderOverview();
+      renderAttendanceCalendar();
       renderAttendanceLogs();
       renderSchedules();
       if (isTransUnlocked) renderTransactions();
@@ -389,53 +520,58 @@
       document.getElementById('attStudent').innerHTML = html;
       document.getElementById('schStudent').innerHTML = html;
 
+      const attFilterEl = document.getElementById('attFilterStudent');
+      const prevFilter = attFilterEl.value;
       let filterHtml = '<option value="全部">全部學員</option>';
-      students.forEach(s => filterHtml += `<option value="${s.name}">${s.name}</option>`);
-      document.getElementById('attFilterStudent').innerHTML = filterHtml;
+      students.forEach(s => filterHtml += `<option value="${s.name}" ${s.name === prevFilter ? 'selected' : ''}>${s.name}</option>`);
+      attFilterEl.innerHTML = filterHtml;
     }
 
     function renderGroupTabs() {
       const container = document.getElementById('groupTabsContainer');
       const totalCount = students.length;
-      
       const groupCounts = {};
-      students.forEach(s => {
-        const g = s.group || "一般班";
-        groupCounts[g] = (groupCounts[g] || 0) + 1;
-      });
-
+      students.forEach(s => { const g = s.group || "一般班"; groupCounts[g] = (groupCounts[g] || 0) + 1; });
       const groups = ["全部", ...Object.keys(groupCounts)];
-
       container.innerHTML = groups.map(g => {
         const count = (g === "全部") ? totalCount : groupCounts[g];
         const isSelected = currentGroupFilter === g;
-        return `
-          <button onclick="setGroupFilter('${g}')" class="px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition ${isSelected ? 'bg-emerald-800 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
-            ${g === "全部" ? "全部" : g} (${count})
-          </button>
-        `;
+        return `<button onclick="setGroupFilter('${g}')" class="px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition ${isSelected ? 'bg-emerald-800 text-white shadow' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">${g === "全部" ? "全部" : g} (${count})</button>`;
       }).join('');
     }
 
     function setGroupFilter(g) { currentGroupFilter = g; renderGroupTabs(); renderOverview(); }
 
+    function clearStudentSearch() {
+      document.getElementById('studentSearchInput').value = "";
+      renderOverview();
+    }
+
     function renderOverview() {
       const container = document.getElementById('studentList');
-      const filtered = students.filter(s => currentGroupFilter === "全部" || s.group === currentGroupFilter);
+      const keyword = (document.getElementById('studentSearchInput')?.value || "").trim().toLowerCase();
+
+      const filtered = students.filter(s => {
+        const matchGroup = (currentGroupFilter === "全部" || s.group === currentGroupFilter);
+        const matchKeyword = !keyword ||
+          String(s.name || "").toLowerCase().includes(keyword) ||
+          String(s.group || "").toLowerCase().includes(keyword);
+        return matchGroup && matchKeyword;
+      });
+
       if (filtered.length === 0) {
-        container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400 text-sm">此班別目前無學員</div>`;
+        container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400 text-sm">${keyword ? `找不到符合「${keyword}」的學員` : '此班別目前無學員'}</div>`;
         return;
       }
+
       container.innerHTML = filtered.map(s => `
         <div class="bg-white p-4 rounded-2xl shadow-sm border flex justify-between items-center">
           <div>
             <div class="flex items-center gap-2">
-              <button onclick="openStudentDetailModal('${s.name}')" class="font-bold text-base text-emerald-900 underline decoration-emerald-400 hover:text-emerald-600 text-left">
-                👤 ${s.name}
-              </button>
+              <button onclick="openStudentDetailModal('${s.name}')" class="font-bold text-base text-emerald-900 underline decoration-emerald-400 hover:text-emerald-600 text-left">👤 ${s.name}</button>
               <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${s.group}</span>
             </div>
-            <div class="text-xs text-slate-500 mt-1">總堂數：${s.total} ｜ 已上：${s.used} 堂</div>
+            <div class="text-xs text-slate-500 mt-1">總堂數：${s.total} ｜ 已上：${s.used} 堂 ${s.registrar ? `｜ 登記：${s.registrar}` : ''}</div>
             <div class="flex gap-2 mt-2">
               <button onclick="openRechargeModal('${s.name}')" class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg font-bold">💳 加購</button>
               <button onclick="deleteStudent('${s.name}')" class="text-xs bg-red-50 text-red-600 px-3 py-1 rounded-lg font-bold">🗑️ 移除</button>
@@ -449,12 +585,127 @@
       `).join('');
     }
 
+    // 🗓️ 當月出勤月曆渲染與互動
+    function onAttMonthChange() {
+      const monthVal = document.getElementById('attFilterMonth').value;
+      if (selectedAttDate && monthVal && !selectedAttDate.startsWith(monthVal)) {
+        selectedAttDate = "";
+      }
+      renderAttendanceCalendar();
+      renderAttendanceLogs();
+    }
+
+    function resetAttMonthFilter() {
+      document.getElementById('attFilterMonth').value = "";
+      selectedAttDate = "";
+      renderAttendanceCalendar();
+      renderAttendanceLogs();
+    }
+
+    function selectAttCalendarDate(dateStr) {
+      if (selectedAttDate === dateStr) {
+        selectedAttDate = "";
+      } else {
+        selectedAttDate = dateStr;
+        document.getElementById('attDate').value = dateStr;
+      }
+      renderAttendanceCalendar();
+      renderAttendanceLogs();
+    }
+
+    function clearAttSelectedDate() {
+      selectedAttDate = "";
+      renderAttendanceCalendar();
+      renderAttendanceLogs();
+    }
+
+    function renderAttendanceCalendar() {
+      const gridEl = document.getElementById('attendanceCalendarGrid');
+      const titleEl = document.getElementById('attCalendarTitle');
+      const badgeEl = document.getElementById('attSelectedDateBadge');
+      const clearBtnEl = document.getElementById('attClearDateBtn');
+
+      let monthVal = document.getElementById('attFilterMonth').value;
+      if (!monthVal) {
+        if (selectedAttDate) {
+          monthVal = selectedAttDate.substring(0, 7);
+        } else {
+          monthVal = new Date().toISOString().substring(0, 7);
+        }
+      }
+
+      const [yearStr, monStr] = monthVal.split('-');
+      const year = parseInt(yearStr, 10);
+      const monthIdx = parseInt(monStr, 10) - 1;
+      titleEl.innerText = `🗓️ ${year} 年 ${parseInt(monStr, 10)} 月出勤月曆（點擊日期可篩選當日）`;
+
+      if (selectedAttDate) {
+        badgeEl.innerText = `已選日期：${selectedAttDate}`;
+        badgeEl.classList.remove('hidden');
+        clearBtnEl.classList.remove('hidden');
+      } else {
+        badgeEl.classList.add('hidden');
+        clearBtnEl.classList.add('hidden');
+      }
+
+      const firstDayOfWeek = new Date(year, monthIdx, 1).getDay();
+      const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // 統計當月每日出勤筆數與扣堂數
+      const dailySummary = {};
+      attendanceLogs.forEach(l => {
+        if (!l.date || !l.date.startsWith(monthVal)) return;
+        if (!dailySummary[l.date]) {
+          dailySummary[l.date] = { count: 0, deduct: 0 };
+        }
+        dailySummary[l.date].count += 1;
+        dailySummary[l.date].deduct += Number(l.deduct) || 0;
+      });
+
+      let cellsHtml = '';
+      for (let b = 0; b < firstDayOfWeek; b++) {
+        cellsHtml += `<div class="h-14 rounded-xl bg-slate-50/40 border border-transparent"></div>`;
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dayStr = `${yearStr}-${monStr}-${String(d).padStart(2, '0')}`;
+        const info = dailySummary[dayStr];
+        const isSelected = (selectedAttDate === dayStr);
+        const isToday = (todayStr === dayStr);
+
+        let boxClass = "bg-white border-emerald-100 hover:bg-emerald-50 text-emerald-900";
+        if (isSelected) {
+          boxClass = "bg-emerald-700 border-emerald-800 text-white shadow";
+        } else if (info) {
+          boxClass = "bg-emerald-50 border-emerald-300 hover:bg-emerald-100 text-emerald-950";
+        } else if (isToday) {
+          boxClass = "bg-amber-50/70 border-amber-300 hover:bg-amber-100 text-emerald-950";
+        }
+
+        cellsHtml += `
+          <button
+            type="button"
+            onclick="selectAttCalendarDate('${dayStr}')"
+            class="h-14 p-1 rounded-xl border flex flex-col justify-between items-center transition ${boxClass}"
+          >
+            <span class="text-xs font-bold leading-none mt-0.5">${d}${isToday && !isSelected ? '<span class="text-[9px] text-amber-700 ml-0.5">今</span>' : ''}</span>
+            ${info
+              ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-none ${isSelected ? 'bg-emerald-900 text-emerald-100' : 'bg-emerald-600 text-white'}">${info.count}人 / 扣${info.deduct}</span>`
+              : `<span class="text-[10px] opacity-30 leading-none">-</span>`
+            }
+          </button>
+        `;
+      }
+
+      gridEl.innerHTML = cellsHtml;
+    }
+
     function openStudentDetailModal(name) {
       const student = students.find(s => s.name === name);
       if (!student) return;
-
       document.getElementById('detailStudentTitle').innerText = `👤 ${student.name} 完整課程與預約`;
-      document.getElementById('detailStudentGroup').innerText = `班別：${student.group}`;
+      document.getElementById('detailStudentGroup').innerText = `班別：${student.group}` + (student.registrar ? ` ｜ 登記人員：${student.registrar}` : '');
       document.getElementById('detailTotal').innerText = `${student.total} 堂`;
       document.getElementById('detailUsed').innerText = `${student.used} 堂`;
       document.getElementById('detailLeft').innerText = `${student.left} 堂`;
@@ -464,18 +715,12 @@
       const container = document.getElementById('detailSchedulesAndLogs');
 
       let html = '<div class="font-bold text-xs text-slate-700 mt-1">📌 預約排程：</div>';
-      if (studSchedules.length === 0) {
-        html += '<div class="text-slate-400 text-xs py-1">無預約紀錄</div>';
-      } else {
-        html += studSchedules.map(sc => `<div class="p-2 bg-slate-50 rounded-lg border text-xs">📅 ${sc.date} (${sc.time}) - <span class="font-bold">${sc.status}</span></div>`).join('');
-      }
+      if (studSchedules.length === 0) { html += '<div class="text-slate-400 text-xs py-1">無預約紀錄</div>'; }
+      else { html += studSchedules.map(sc => `<div class="p-2 bg-slate-50 rounded-lg border text-xs">📅 ${sc.date} (${sc.time}) - <span class="font-bold">${sc.status}</span></div>`).join(''); }
 
       html += '<div class="font-bold text-xs text-slate-700 mt-2">📜 出勤扣堂紀錄：</div>';
-      if (studLogs.length === 0) {
-        html += '<div class="text-slate-400 text-xs py-1">無出勤紀錄</div>';
-      } else {
-        html += studLogs.slice().reverse().map(l => `<div class="p-2 bg-slate-50 rounded-lg border text-xs flex justify-between"><span>📝 ${l.date} - ${l.status}</span><span class="font-bold">扣 ${l.deduct} 堂</span></div>`).join('');
-      }
+      if (studLogs.length === 0) { html += '<div class="text-slate-400 text-xs py-1">無出勤紀錄</div>'; }
+      else { html += studLogs.slice().reverse().map(l => `<div class="p-2 bg-slate-50 rounded-lg border text-xs flex justify-between"><span>📝 ${l.date} - ${l.status}</span><span class="font-bold">扣 ${l.deduct} 堂</span></div>`).join(''); }
 
       container.innerHTML = html;
       document.getElementById('studentDetailModal').classList.remove('hidden');
@@ -484,41 +729,49 @@
 
     function openStudentFinanceModal(name) {
       const studTxs = transactions.filter(tr => tr.name === name);
-      let totalAmount = 0;
-      studTxs.forEach(tr => totalAmount += Number(tr.amount) || 0);
-
+      let totalAmount = 0; studTxs.forEach(tr => totalAmount += Number(tr.amount) || 0);
       document.getElementById('financeStudentTitle').innerText = `💰 ${name} 財務總覽`;
       document.getElementById('financeStudentTotalAmount').innerText = `$${totalAmount.toLocaleString()}`;
-
       const container = document.getElementById('financeStudentTxList');
-      if (studTxs.length === 0) {
-        container.innerHTML = `<div class="text-center text-slate-400 py-4">尚無交易紀錄</div>`;
-      } else {
+      if (studTxs.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-4">尚無交易紀錄</div>`; }
+      else {
         container.innerHTML = studTxs.slice().reverse().map(tr => `
           <div class="p-2.5 bg-slate-50 rounded-xl border flex justify-between items-center">
             <div>
-              <span class="font-bold text-slate-800">${tr.date}</span>
-              <span class="text-xs bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold ml-1.5">加購 ${tr.count} 堂</span>
-              <span class="text-xs border px-2 py-0.5 rounded font-bold ml-1">${tr.payType}</span>
+              <div>
+                <span class="font-bold text-slate-800">${tr.date}</span>
+                <span class="text-xs bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold ml-1.5">加購 ${tr.count} 堂</span>
+                <span class="text-xs border px-2 py-0.5 rounded font-bold ml-1">${tr.payType}</span>
+              </div>
+              ${tr.registrar ? `<div class="text-[11px] text-emerald-700 font-bold mt-1">👤 登記人員：${tr.registrar}</div>` : ''}
             </div>
             <div class="font-black text-emerald-800">$${Number(tr.amount).toLocaleString()}</div>
           </div>
         `).join('');
       }
-      document.getElementById('studentFinanceModal').classList.add('hidden'); // Fix typo from earlier if any, but keep correct structure
       document.getElementById('studentFinanceModal').classList.remove('hidden');
     }
     function closeStudentFinanceModal() { document.getElementById('studentFinanceModal').classList.add('hidden'); }
 
     function renderAttendanceLogs() {
       const container = document.getElementById('attendanceLogList');
-      const filter = document.getElementById('attFilterStudent').value;
-      const filtered = attendanceLogs.map((l, idx) => ({...l, originalIndex: idx})).filter(l => filter === "全部" || l.name === filter);
+      const filterStudent = document.getElementById('attFilterStudent').value;
+      const filterMonth = document.getElementById('attFilterMonth').value;
+
+      const filtered = attendanceLogs
+        .map((l, idx) => ({...l, originalIndex: idx}))
+        .filter(l => {
+          const matchStudent = (filterStudent === "全部" || l.name === filterStudent);
+          const matchMonth = (!filterMonth || (l.date && l.date.startsWith(filterMonth)));
+          const matchDate = (!selectedAttDate || l.date === selectedAttDate);
+          return matchStudent && matchMonth && matchDate;
+        });
 
       if (filtered.length === 0) {
-        container.innerHTML = `<div class="text-center text-slate-400 py-4">尚無點名紀錄</div>`;
+        container.innerHTML = `<div class="text-center text-slate-400 py-4">${selectedAttDate ? `${selectedAttDate} 尚無點名紀錄` : '尚無點名紀錄'}</div>`;
         return;
       }
+
       container.innerHTML = filtered.slice().reverse().map(l => `
         <div class="p-3 bg-slate-50 rounded-xl border flex justify-between items-center">
           <div>
@@ -528,34 +781,37 @@
           </div>
           <div class="flex items-center gap-1.5">
             <span class="text-xs font-bold mr-1">扣 ${l.deduct} 堂</span>
-            <button onclick="openEditAttendanceModal(${l.originalIndex})" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold">✏️ 編輯</button>
-            <button onclick="deleteAttendanceLog(${l.originalIndex})" class="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded-lg text-xs font-bold">🗑️ 移除</button>
+            <button onclick="openEditAttendanceModal(${l.originalIndex})" class="bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold">✏️ 編輯</button>
+            <button onclick="deleteAttendanceLog(${l.originalIndex})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg text-xs font-bold">🗑️ 移除</button>
           </div>
         </div>
       `).join('');
     }
 
-    // 移除出勤紀錄（需主管密碼，並自動回補堂數）
     function deleteAttendanceLog(index) {
       const pwd = prompt(`🔒 移除此筆出勤紀錄需要輸入主管密碼 (1234)：`);
       if (pwd === ADMIN_PASSWORD) {
         const l = attendanceLogs[index];
-        // 回補學員堂數
         const target = students.find(s => s.name === l.name);
-        if (target) {
-          target.used = Math.max(0, target.used - l.deduct);
-          target.left = target.total - target.used;
+        if (target) { 
+          target.used = Math.max(0, target.used - l.deduct); 
+          target.left = target.total - target.used; 
         }
-
+        
         attendanceLogs.splice(index, 1);
-        syncToSheet({ type: "deleteAttendance", date: l.date, name: l.name });
+        
+        syncToSheet({ 
+          type: "deleteAttendance", 
+          date: l.date, 
+          name: l.name, 
+          status: l.status, 
+          deduct: l.deduct 
+        });
 
-        saveLocalData();
+        saveLocalData(); 
         renderAll();
         alert(`🗑️ 出勤紀錄已移除，學員堂數已自動回補！`);
-      } else if (pwd !== null) {
-        alert("❌ 密碼錯誤！");
-      }
+      } else if (pwd !== null) { alert("❌ 密碼錯誤！"); }
     }
 
     function openEditAttendanceModal(index) {
@@ -573,48 +829,51 @@
       const newStatus = document.getElementById('editAttStatus').value;
       const newNote = document.getElementById('editAttNote').value.trim();
       const oldLog = attendanceLogs[index];
-
       const oldDeduct = oldLog.deduct;
       const newDeduct = (newStatus === "請假") ? 0 : 1;
 
       const target = students.find(s => s.name === oldLog.name);
-      if (target) {
-        target.used = target.used - oldDeduct + newDeduct;
-        target.left = Math.max(0, target.total - target.used);
-      }
+      if (target) { target.used = target.used - oldDeduct + newDeduct; target.left = Math.max(0, target.total - target.used); }
 
       attendanceLogs[index].status = newStatus;
       attendanceLogs[index].deduct = newDeduct;
       attendanceLogs[index].note = newNote;
 
-      syncToSheet({
-        type: "updateAttendance",
-        date: oldLog.date,
-        name: oldLog.name,
-        status: newStatus,
-        deduct: newDeduct,
-        note: newNote
+      let matchedSch = schedules.find(sc => sc.name === oldLog.name && sc.date === oldLog.date);
+      let schStatusToSend = "";
+      if (matchedSch) {
+        if (newStatus === "正常出席" || newStatus === "補課") {
+          matchedSch.status = "已到課";
+        } else if (newStatus === "請假") {
+          matchedSch.status = "請假改期";
+        } else if (newStatus === "曠課") {
+          matchedSch.status = "未出席";
+        }
+        schStatusToSend = matchedSch.status;
+      }
+
+      syncToSheet({ 
+        type: "updateAttendance", 
+        date: oldLog.date, 
+        name: oldLog.name, 
+        status: newStatus, 
+        deduct: newDeduct, 
+        note: newNote,
+        scheduleStatus: schStatusToSend
       });
 
-      saveLocalData();
-      renderAll();
-      closeEditAttendanceModal();
-      alert("✅ 出勤狀態已更新並同步至試算表！");
+      saveLocalData(); renderAll(); closeEditAttendanceModal();
+      alert("✅ 出勤狀態已更新並連動更新預約狀態與試算表！");
     }
 
     function renderSchedules() {
       const container = document.getElementById('scheduleList');
       const filterMonth = document.getElementById('schFilterMonth').value;
-      
       const filtered = schedules.map((sc, idx) => ({...sc, originalIndex: idx})).filter(sc => {
         if (!filterMonth) return true;
         return sc.date && sc.date.startsWith(filterMonth);
       });
-
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="text-center text-slate-400 py-4">此年月區間無預約行程</div>`;
-        return;
-      }
+      if (filtered.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-4">此年月區間無預約行程</div>`; return; }
       container.innerHTML = filtered.map(sc => `
         <div class="p-3 bg-slate-50 rounded-xl border flex justify-between items-center">
           <div>
@@ -623,27 +882,22 @@
             <div class="text-[11px] text-slate-500 mt-0.5">📅 ${sc.date} ｜ 時段：${sc.time}</div>
           </div>
           <div class="flex items-center gap-1.5">
-            <button onclick="openEditScheduleModal(${sc.originalIndex})" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold">✏️ 編輯</button>
-            <button onclick="deleteSchedule(${sc.originalIndex})" class="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded-lg text-xs font-bold">🗑️ 移除</button>
+            <button onclick="openEditScheduleModal(${sc.originalIndex})" class="bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold">✏️ 編輯</button>
+            <button onclick="deleteSchedule(${sc.originalIndex})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg text-xs font-bold">🗑️ 移除</button>
           </div>
         </div>
       `).join('');
     }
 
-    // 移除預約行程（需主管密碼）
     function deleteSchedule(index) {
       const pwd = prompt(`🔒 移除此筆預約行程需要輸入主管密碼 (1234)：`);
       if (pwd === ADMIN_PASSWORD) {
         const sc = schedules[index];
         schedules.splice(index, 1);
         syncToSheet({ type: "deleteSchedule", date: sc.date, name: sc.name, time: sc.time });
-
-        saveLocalData();
-        renderSchedules();
+        saveLocalData(); renderSchedules();
         alert(`🗑️ 預約行程已成功移除！`);
-      } else if (pwd !== null) {
-        alert("❌ 密碼錯誤！");
-      }
+      } else if (pwd !== null) { alert("❌ 密碼錯誤！"); }
     }
 
     function openEditScheduleModal(index) {
@@ -659,53 +913,53 @@
       const index = parseInt(document.getElementById('editSchIndex').value);
       const newStatus = document.getElementById('editSchStatus').value;
       schedules[index].status = newStatus;
-
-      syncToSheet({
-        type: "updateScheduleStatus",
-        name: schedules[index].name,
-        date: schedules[index].date,
-        status: newStatus
-      });
-
-      saveLocalData();
-      renderSchedules();
-      closeEditScheduleModal();
+      syncToSheet({ type: "updateScheduleStatus", name: schedules[index].name, date: schedules[index].date, status: newStatus });
+      saveLocalData(); renderSchedules(); closeEditScheduleModal();
       alert("✅ 預約狀態已更新並同步至試算表！");
     }
 
     function renderTransactions() {
       let totalAll = 0, totalCash = 0, totalCredit = 0, totalTwqr = 0;
       transactions.forEach(tr => {
-        const amt = Number(tr.amount) || 0;
-        totalAll += amt;
+        const amt = Number(tr.amount) || 0; totalAll += amt;
         if (tr.payType === "現金") totalCash += amt;
         else if (tr.payType === "信用卡") totalCredit += amt;
         else if (tr.payType === "TWQR") totalTwqr += amt;
       });
-
       document.getElementById('subTotalAll').innerText = `$${totalAll.toLocaleString()}`;
       document.getElementById('subTotalCash').innerText = `$${totalCash.toLocaleString()}`;
       document.getElementById('subTotalCredit').innerText = `$${totalCredit.toLocaleString()}`;
       document.getElementById('subTotalTwqr').innerText = `$${totalTwqr.toLocaleString()}`;
 
       const container = document.getElementById('transactionList');
-      if (transactions.length === 0) {
-        container.innerHTML = `<div class="text-center text-slate-400 py-4">尚無交易紀錄</div>`;
-        return;
-      }
-      container.innerHTML = transactions.slice().reverse().map(tr => `
+      if (transactions.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-4">尚無交易紀錄</div>`; return; }
+      container.innerHTML = transactions.map((tr, idx) => ({...tr, originalIndex: idx})).slice().reverse().map(tr => `
         <div class="p-3 bg-slate-50 rounded-xl border flex justify-between items-center">
           <div>
-            <button onclick="openStudentFinanceModal('${tr.name}')" class="font-bold text-slate-900 underline decoration-emerald-400 hover:text-emerald-600 text-left">
-              💰 ${tr.name}
-            </button>
-            <span class="text-xs bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold ml-2">加購 ${tr.count} 堂</span>
-            <span class="text-xs border px-2 py-0.5 rounded font-bold ml-1">${tr.payType}</span>
-            <div class="text-[11px] text-slate-500 mt-0.5">日期：${tr.date} (點擊姓名看個人總額)</div>
+            <div>
+              <button onclick="openStudentFinanceModal('${tr.name}')" class="font-bold text-slate-900 underline decoration-emerald-400 hover:text-emerald-600 text-left">💰 ${tr.name}</button>
+              <span class="text-xs bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold ml-2">加購 ${tr.count} 堂</span>
+              <span class="text-xs border px-2 py-0.5 rounded font-bold ml-1">${tr.payType}</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">日期：${tr.date} ${tr.registrar ? `<span class="text-emerald-800 font-bold ml-2">｜ 登記：${tr.registrar}</span>` : ''}</div>
           </div>
-          <div class="text-base font-black text-emerald-800">$${Number(tr.amount).toLocaleString()}</div>
+          <div class="flex items-center gap-2">
+            <div class="text-base font-black text-emerald-800">$${Number(tr.amount).toLocaleString()}</div>
+            <button onclick="deleteTransaction(${tr.originalIndex})" class="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg text-xs font-bold transition">🗑️ 移除</button>
+          </div>
         </div>
       `).join('');
+    }
+
+    function deleteTransaction(index) {
+      const pwd = prompt(`🔒 移除此筆交易紀錄需要輸入主管密碼 (1234)：`);
+      if (pwd === ADMIN_PASSWORD) {
+        const tr = transactions[index];
+        transactions.splice(index, 1);
+        syncToSheet({ type: "deleteTransaction", date: tr.date, name: tr.name, amount: tr.amount });
+        saveLocalData(); renderTransactions();
+        alert(`🗑️ 交易紀錄已成功移除！`);
+      } else if (pwd !== null) { alert("❌ 密碼錯誤！"); }
     }
 
     function submitAttendance() {
@@ -717,19 +971,35 @@
 
       const deduct = (status === "請假") ? 0 : 1;
       attendanceLogs.push({ date, name, status, deduct, note });
-      syncToSheet({ type: "attendance", date, name, status, deduct, note });
-
+      
       const target = students.find(s => s.name === name);
-      if (target) { target.used += deduct; target.left = Math.max(0, target.total - target.used); }
+      if (target) { 
+        target.used += deduct; 
+        target.left = Math.max(0, target.total - target.used); 
+      }
 
       let matchedSch = schedules.find(sc => sc.name === name && sc.date === date);
+      let schStatusToSend = "";
       if (matchedSch) {
-        matchedSch.status = "已到課";
+        if (status === "正常出席" || status === "補課") {
+          matchedSch.status = "已到課";
+        } else if (status === "請假") {
+          matchedSch.status = "請假改期";
+        } else if (status === "曠課") {
+          matchedSch.status = "未出席";
+        }
+        schStatusToSend = matchedSch.status;
+      }
+
+      syncToSheet({ type: "attendance", date, name, status, deduct, note, scheduleStatus: schStatusToSend });
+
+      if (date) {
+        document.getElementById('attFilterMonth').value = date.substring(0, 7);
       }
 
       saveLocalData();
       renderAll();
-      alert(`✅ 已成功為 ${name} 登記【${status}】並連動更新預約狀態為已到課！`);
+      alert(`✅ 已成功為 ${name} 登記【${status}】並連動更新預約狀態為【${schStatusToSend || '無預約'}】！`);
       document.getElementById('attNote').value = "";
     }
 
@@ -739,25 +1009,25 @@
       const total = parseInt(document.getElementById('newStudentTotal').value) || 15;
       const amount = parseInt(document.getElementById('newStudentAmount').value) || 0;
       const payType = document.getElementById('newStudentPayType').value;
+      const registrar = document.getElementById('newStudentRegistrar').value;
       const date = new Date().toISOString().split('T')[0];
 
       if (!name) return alert("請輸入學員姓名！");
+      if (!registrar) return alert("請選擇登記人員！");
       
-      students.push({ id: students.length + 1, name, group, total, used: 0, left: total });
-      transactions.push({ date, name, count: total, amount, payType });
+      students.push({ id: students.length + 1, name, group, total, used: 0, left: total, registrar });
+      transactions.push({ date, name, count: total, amount, payType, registrar });
+      syncToSheet({ type: "newStudent", date, name, group, total, amount, payType, registrar });
 
-      syncToSheet({ type: "newStudent", date, name, group, total, amount, payType });
-
-      saveLocalData();
-      renderAll();
-      closeAddStudentModal();
+      saveLocalData(); renderAll(); closeAddStudentModal();
       document.getElementById('newStudentName').value = "";
-      alert(`🎉 新增學員【${name}】與初始繳費紀錄成功！`);
+      alert(`🎉 新增學員【${name}】與初始繳費紀錄成功（登記人員：${registrar}）！`);
     }
 
     function openRechargeModal(name) {
       currentRechargeStudent = name;
       document.getElementById('rechargeStudentName').value = name;
+      renderRegistrarDropdowns();
       document.getElementById('rechargeModal').classList.remove('hidden');
     }
     function closeRechargeModal() { document.getElementById('rechargeModal').classList.add('hidden'); }
@@ -766,17 +1036,18 @@
       const count = parseInt(document.getElementById('rechargeCount').value) || 0;
       const amount = parseInt(document.getElementById('rechargeAmount').value) || 0;
       const payType = document.getElementById('rechargePayType').value;
+      const registrar = document.getElementById('rechargeRegistrar').value;
       const date = new Date().toISOString().split('T')[0];
 
-      transactions.push({ date, name: currentRechargeStudent, count, amount, payType });
-      syncToSheet({ type: "recharge", date, name: currentRechargeStudent, count, amount, payType });
+      if (!registrar) return alert("請選擇登記人員！");
+
+      transactions.push({ date, name: currentRechargeStudent, count, amount, payType, registrar });
+      syncToSheet({ type: "recharge", date, name: currentRechargeStudent, count, amount, payType, registrar });
       
       const target = students.find(s => s.name === currentRechargeStudent);
       if (target) { target.total += count; target.left = target.total - target.used; }
 
-      saveLocalData();
-      renderAll();
-      closeRechargeModal();
+      saveLocalData(); renderAll(); closeRechargeModal();
       alert(`🎉 成功為【${currentRechargeStudent}】加購 ${count} 堂並記錄交易！`);
     }
 
@@ -794,17 +1065,13 @@
       checkboxes.forEach(cb => {
         let timeSlot = cb.value;
         schedules.push({ date, name, time: timeSlot, status });
-        
         syncToSheet({ type: "schedule", date, name, time: timeSlot, status });
-
         addedCount++;
         cb.checked = false;
       });
 
       document.getElementById('schFilterMonth').value = date.substring(0, 7);
-
-      saveLocalData();
-      renderSchedules();
+      saveLocalData(); renderSchedules();
       alert(`✅ 成功新增 ${name} 共 ${addedCount} 個時段的預約行程並同步至試算表！`);
     }
 
@@ -813,8 +1080,7 @@
       if (pwd === ADMIN_PASSWORD) {
         students = students.filter(s => s.name !== name);
         syncToSheet({ type: "deleteStudent", name });
-        saveLocalData();
-        renderAll();
+        saveLocalData(); renderAll();
         alert(`🗑️ 學員已移除！`);
       } else if (pwd !== null) { alert("❌ 密碼錯誤！"); }
     }
@@ -830,16 +1096,13 @@
       } else { alert("❌ 密碼錯誤！"); }
     }
 
-    function openAddStudentModal() { document.getElementById('addStudentModal').classList.remove('hidden'); }
+    function openAddStudentModal() { renderRegistrarDropdowns(); document.getElementById('addStudentModal').classList.remove('hidden'); }
     function closeAddStudentModal() { document.getElementById('addStudentModal').classList.add('hidden'); }
     
     function toggleSettings() {
       const pwd = prompt("請輸入主管密碼");
-      if (pwd === ADMIN_PASSWORD) {
-        document.getElementById('settingsPanel').classList.toggle('hidden');
-      } else if (pwd !== null) {
-        alert("❌ 密碼錯誤！");
-      }
+      if (pwd === ADMIN_PASSWORD) { document.getElementById('settingsPanel').classList.toggle('hidden'); }
+      else if (pwd !== null) { alert("❌ 密碼錯誤！"); }
     }
 
     function saveScriptUrl() {
